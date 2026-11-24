@@ -1,0 +1,2208 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Office Suite</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,Arial;color:#172033;background:#f4f6fa;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:9px;padding:10px 15px;background:#2457d6;color:white;font-weight:650}
+button.secondary{background:#e9edf5;color:#24324b}button.danger{background:#b83245}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{width:100%;padding:11px;border:1px solid #d8deea;border-radius:8px;background:white;color:#172033}
+label{display:block;font-size:13px;font-weight:650;color:#526078;margin:12px 0 6px}
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login{background:white;padding:34px;border-radius:18px;box-shadow:0 12px 45px #17203312;width:min(420px,100%)}
+#setupView{
+  background:
+    radial-gradient(ellipse at 15% 10%,#e2ebff 0,transparent 42%),
+    radial-gradient(ellipse at 90% 90%,#e9efff 0,transparent 38%),
+    #f5f7fc;
+  padding:32px 20px;
+}
+#setupView .login{
+  width:min(460px,100%);
+  padding:42px;
+  border:1px solid #e8edf6;
+  border-radius:20px;
+  box-shadow:0 22px 65px rgba(30,48,85,.11);
+}
+#setupView .brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin-bottom:34px;
+  color:#1d2b45;
+  font-size:19px;
+  letter-spacing:-.5px;
+}
+#setupView .brand:before{
+  content:"O";
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  background:linear-gradient(145deg,#3268e8,#204bb9);
+  color:white;
+  font-size:21px;
+  font-weight:800;
+  box-shadow:0 5px 12px #2457d633;
+}
+#setupView h1{
+  font-size:27px;
+  letter-spacing:-.9px;
+  margin-bottom:9px;
+  color:#17243b;
+}
+#setupView .muted{
+  font-size:14px;
+  line-height:1.65;
+  margin:0 0 25px;
+  color:#748198;
+}
+#setupView label{
+  margin:17px 0 7px;
+  font-size:12px;
+  letter-spacing:.15px;
+  color:#3d4b63;
+}
+#setupView input{
+  height:46px;
+  padding:0 13px;
+  border:1px solid #dce3ef;
+  border-radius:9px;
+  background:#fbfcfe;
+  font-size:14px;
+  transition:border-color .18s,box-shadow .18s,background .18s;
+}
+#setupView input:focus{
+  outline:none;
+  border-color:#4775e5;
+  background:white;
+  box-shadow:0 0 0 3px rgba(55,105,225,.12);
+}
+#setupView .setup-actions{
+  display:grid;
+  gap:11px;
+  margin-top:27px;
+}
+#setupView .setup-submit{
+  width:100%;
+  min-height:48px;
+  border-radius:10px;
+  background:linear-gradient(135deg,#3268e8,#2452c3);
+  box-shadow:0 5px 13px rgba(36,87,214,.2);
+  font-size:14px;
+  font-weight:700;
+  transition:transform .15s,box-shadow .15s;
+}
+#setupView .setup-submit:hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 18px rgba(36,87,214,.25);
+}
+#setupView .setup-back{
+  width:100%;
+  min-height:43px;
+  border:1px solid #e2e7f0;
+  border-radius:10px;
+  background:white;
+  color:#59677e;
+  font-size:13px;
+  font-weight:600;
+}
+#setupView .setup-back:hover{
+  background:#f5f7fb;
+  color:#263752;
+}
+#setupError:empty{display:none}
+#setupError:not(:empty){margin-top:16px;padding:11px 13px;border-radius:9px}
+@media(max-width:520px){
+  #setupView .login{padding:30px 24px}
+  #setupView .brand{margin-bottom:27px}
+}
+
+.brand{font-size:23px;font-weight:800;letter-spacing:-.7px}.muted{color:#78849a}
+.shell{display:none;min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:245px;background:#17243b;color:white;padding:25px 17px}
+.sidebar .brand{padding:6px 12px 30px}.nav{display:grid;gap:7px}.nav button{background:transparent;color:#cbd5e5;text-align:left}
+.nav button.active,.nav button:hover{background:#2b3c5a;color:white}
+.side-user{position:absolute;bottom:22px;left:22px;right:22px;color:#cbd5e5;font-size:13px}
+.main{margin-left:245px;padding:30px;max-width:1600px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:25px}
+h1{font-size:27px;letter-spacing:-.7px;margin:0}h2{font-size:17px;margin:0 0 15px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:22px}
+.card{background:white;border:1px solid #e7ebf2;border-radius:13px;padding:19px;box-shadow:0 3px 12px #17203305}
+.metric{font-size:27px;font-weight:800;margin-top:8px}.metric-label{font-size:13px;color:#78849a}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:15px}
+.toolbar input{max-width:300px}.table-wrap{overflow:auto}
+table{border-collapse:collapse;width:100%;min-width:720px}
+th,td{text-align:left;padding:13px 12px;border-bottom:1px solid #edf0f5;font-size:13px}
+th{color:#77839a;font-weight:700;background:#fafbfc}
+td strong{font-size:13px}.status{display:inline-block;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:750;background:#edf1f7;color:#526078}
+.status.approved,.status.paid{background:#e4f6eb;color:#187545}.status.pending_review,.status.unpaid{background:#fff3d9;color:#946313}.status.rejected{background:#ffeaed;color:#a72c40}
+.actions{display:flex;gap:6px;flex-wrap:wrap}.actions button{padding:7px 9px;font-size:12px}
+.page{display:none}.page.active{display:block}.notice{padding:12px 14px;border-radius:9px;margin:12px 0;background:#edf4ff;color:#2451a4;font-size:13px}
+.error{background:#fff0f0;color:#a72c40}.success{background:#e7f8ed;color:#187545}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 15px}
+.modal{display:none;position:fixed;inset:0;background:#10182788;z-index:5;place-items:center;padding:18px}
+.modal.open{display:grid}.modal-box{background:white;border-radius:15px;padding:24px;width:min(680px,100%);max-height:90vh;overflow:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.drop{border:2px dashed #cbd4e3;border-radius:12px;padding:35px;text-align:center;background:#fafbfd}
+.empty{text-align:center;padding:45px;color:#7d899e}
+@media(max-width:850px){.sidebar{position:static;width:auto;padding:13px}.sidebar .brand{padding:5px 8px 12px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.side-user{display:none}.main{margin:0;padding:18px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+/* Complete Office Suite workspace */
+
+.nav{max-height:calc(100vh - 150px);overflow-y:auto;align-content:start}
+.nav button{font-size:13px;padding:11px 12px;border-radius:8px}
+.office-page .card{margin-bottom:16px}
+.office-head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.office-head p{margin:5px 0 0;font-size:13px;color:#78849a}
+.office-table{overflow:auto;background:white;border:1px solid #e7ebf2;border-radius:12px}
+.office-table table{min-width:760px}
+.office-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.office-form .wide{grid-column:1/-1}
+.office-empty{padding:38px;text-align:center;color:#78849a}
+.office-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.office-kpi{background:white;border:1px solid #e7ebf2;border-radius:12px;padding:17px}
+.office-kpi strong{display:block;font-size:25px;margin-top:7px}
+.office-kpi span,.office-muted{font-size:12px;color:#78849a}
+.office-check{display:flex;justify-content:space-between;gap:14px;padding:14px 2px;border-bottom:1px solid #edf0f5}
+.office-check small{display:block;color:#78849a;margin-top:4px;overflow-wrap:anywhere}
+.office-pill{font-size:11px;font-weight:750;padding:5px 9px;border-radius:20px;background:#edf1f7;color:#526078;white-space:nowrap}
+.office-pill.healthy,.office-pill.active,.office-pill.completed,.office-pill.won,.office-pill.sent,.office-pill.final{background:#e4f6eb;color:#187545}
+.office-pill.error,.office-pill.blocked,.office-pill.lost,.office-pill.cancelled{background:#ffeaed;color:#a72c40}
+.office-pill.warning,.office-pill.pending_review,.office-pill.queued,.office-pill.proposal{background:#fff3d9;color:#946313}
+.office-toolbar,.office-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.office-toolbar{margin-bottom:14px}
+.office-toolbar input{max-width:320px}
+.office-actions button{font-size:12px;padding:7px 10px}
+@media(max-width:850px){.nav{max-height:none}.office-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.office-form{grid-template-columns:1fr}.office-form .wide{grid-column:auto}}
+
+
+.email-layout{display:grid;grid-template-columns:minmax(280px,.85fr) minmax(0,1.5fr);gap:16px;align-items:start}
+.email-message{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #edf0f5;transition:background .15s ease;cursor:pointer}
+.email-message:last-child{border-bottom:0}
+.email-message:hover,.email-message.selected{background:#edf4ff}
+.email-message.selected{box-shadow:inset 3px 0 #3978d4}
+.email-message strong{display:block;font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+.email-message small{display:block;color:#78849a;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+.email-message p{font-size:12px;color:#68758a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 0}
+.email-message .email-message-content{min-width:0;flex:1}
+.email-message .email-message-date{text-align:right;color:#78849a;font-size:11px;white-space:nowrap}
+#emailInbox{border:1px solid #edf0f5;border-radius:9px;overflow:hidden}
+.email-status{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.email-status span{padding:7px 11px;border-radius:8px;background:#edf1f7;font-size:12px}
+.email-viewer-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.email-viewer-toolbar h2{min-width:0;overflow-wrap:anywhere}
+.email-message-details{display:grid;gap:9px;padding:14px 0;border-top:1px solid #edf0f5;border-bottom:1px solid #edf0f5;font-size:13px;color:#596579}
+.email-message-body{padding-top:16px;min-width:0;overflow-wrap:anywhere}
+.email-plain-body{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.65 inherit;color:#293548}
+.email-html-frame{display:block;width:100%;min-height:420px;border:0;background:#fff}
+#emailComposePanel textarea{min-height:180px;resize:vertical}
+#emailComposePanel[hidden],#emailMessageViewer[hidden]{display:none}
+@media(max-width:950px){.email-layout{grid-template-columns:1fr}}
+@media(max-width:520px){.email-message{align-items:flex-start}.email-message .email-message-date{font-size:10px;white-space:normal;max-width:90px}}
+
+
+/* Equal-height email panels with independent inbox scrolling */
+.email-layout{align-items:stretch}
+.email-inbox-panel,.email-viewer-panel{
+ height:min(72vh,760px);
+ min-height:420px;
+ overflow:hidden;
+}
+.email-inbox-panel{display:flex;flex-direction:column;min-height:0}
+.email-inbox-panel #emailInbox{
+ flex:1;
+ min-height:0;
+ overflow-y:auto;
+ overscroll-behavior:contain;
+}
+.email-viewer-panel{overflow-y:auto}
+@media(max-width:950px){
+ .email-inbox-panel,.email-viewer-panel{
+  height:auto;
+  min-height:0;
+  overflow:visible;
+ }
+ .email-inbox-panel #emailInbox{
+  max-height:55vh;
+  overflow-y:auto;
+ }
+}
+
+
+/* Fixed email toolbar; only message content and compose form scroll */
+.email-viewer-panel{
+ display:flex;
+ flex-direction:column;
+ min-height:0;
+ overflow:hidden;
+}
+.email-viewer-toolbar{
+ flex:0 0 auto;
+ position:relative;
+ z-index:2;
+ background:#fff;
+ padding-bottom:14px;
+ border-bottom:1px solid #edf0f5;
+}
+.email-viewer-toolbar h2{
+ flex:1 1 150px;
+ margin:0;
+}
+.email-message-actions{
+ display:flex;
+ align-items:center;
+ justify-content:flex-end;
+ gap:7px;
+ flex-wrap:wrap;
+}
+.email-message-actions button{
+ padding:8px 10px;
+ font-size:12px;
+ white-space:nowrap;
+}
+#emailMessageViewer,#emailComposePanel{
+ flex:1 1 auto;
+ min-height:0;
+ overflow-y:auto;
+ overscroll-behavior:contain;
+}
+#emailComposePanel{padding-top:8px}
+@media(max-width:950px){
+ .email-viewer-panel{display:flex;min-height:420px;overflow:hidden}
+ .email-viewer-toolbar{position:relative}
+ #emailMessageViewer,#emailComposePanel{min-height:250px}
+}
+@media(max-width:600px){
+ .email-viewer-toolbar{align-items:flex-start;flex-direction:column}
+ .email-message-actions{justify-content:flex-start;width:100%}
+ .email-message-actions button{padding:8px}
+}
+
+
+.email-attachment-controls{
+ display:flex;
+ align-items:center;
+ gap:12px;
+ flex-wrap:wrap;
+ margin-top:12px;
+}
+
+</style>
+</head>
+<body>
+
+<div id="setupView" class="login-wrap" style="display:none">
+  <form class="login" id="setupForm">
+    <div class="brand">OFFICE SUITE</div>
+    <h1>Initial Setup</h1>
+    <p class="muted">Create the administrator account for this installation.</p>
+
+    <label>Full name</label>
+    <input id="setupName" type="text" autocomplete="name" required>
+
+    <label>Email</label>
+    <input id="setupEmail" type="email" autocomplete="email" required>
+
+    <label>Password</label>
+    <input id="setupPassword" type="password" autocomplete="new-password"
+           minlength="12" required>
+
+    <label>Confirm password</label>
+    <input id="setupPasswordConfirm" type="password"
+           autocomplete="new-password" minlength="12" required>
+
+    <div id="setupError"></div>
+
+    <div class="setup-actions">
+      <button type="submit" class="setup-submit">Create Administrator</button>
+      <button type="button" class="setup-back" id="backToLoginBtn">Back to Sign In</button>
+    </div>
+  </form>
+</div>
+
+<div id="loginView" class="login-wrap">
+ <form class="login" id="loginForm">
+  <div class="brand">Office Suite</div>
+  <p class="muted">Invoice management workspace</p>
+  <div id="firstRunNotice" class="notice" style="display:none">
+    <strong>New to Office Suite?</strong><br>
+    Create your administrator account to get started.
+    <button type="button" id="createAccountBtn" style="width:100%;margin-top:12px">
+      Create Account
+    </button>
+  </div>
+  <div id="loginError"></div>
+  <label>Email</label><input id="email" type="email" autocomplete="username" required>
+  <label>Password</label><input id="password" type="password" autocomplete="current-password" required>
+  <button style="width:100%;margin-top:20px">Sign in</button>
+ </form>
+</div>
+<div id="appView" class="shell">
+ <aside class="sidebar">
+  <div class="brand">Office Suite</div>
+  <nav class="nav">
+   <button class="active" data-page="dashboard">Overview</button>
+   <button data-page="invoices">Invoices</button>
+   <button data-page="upload">Upload invoice</button>
+
+   <button data-page="customers">Customers</button>
+   <button data-page="tasks">Task Manager</button>
+   <button data-page="leads">Lead Generation</button>
+   <button data-page="documents">Document Automation</button>
+   <button data-page="emails">AI Email Manager</button>
+   <button data-page="reports">Business Reports</button>
+   <button data-page="monitoring">System Monitoring</button>
+   <button data-page="settings">Settings</button>
+  </nav>
+  <div class="side-user"><div id="userName"></div><div id="userRole" class="muted"></div></div>
+ </aside>
+ <main class="main">
+  <div class="top"><h1 id="pageTitle">Overview</h1><button class="secondary" id="logout">Sign out</button></div>
+  <section id="dashboard" class="page active">
+   <div class="grid">
+    <div class="card"><div class="metric-label">Total invoices</div><div class="metric" id="mTotal">—</div></div>
+    <div class="card"><div class="metric-label">Pending review</div><div class="metric" id="mPending">—</div></div>
+    <div class="card"><div class="metric-label">Approved</div><div class="metric" id="mApproved">—</div></div>
+    <div class="card"><div class="metric-label">Paid</div><div class="metric" id="mPaid">—</div></div>
+   </div>
+   <div class="grid" style="margin-top:16px">
+    <div class="card"><h2>Accounts Payable · Incoming</h2><div class="metric-label">Supplier invoices</div><div class="metric" id="mAPInvoiced">—</div><div class="metric-label">Paid</div><div class="metric" id="mAPPaid">—</div><div class="metric-label">Outstanding</div><div class="metric" id="mAPOutstanding">—</div></div>
+    <div class="card"><h2>Accounts Receivable · Outgoing</h2><div class="metric-label">Customer invoices</div><div class="metric" id="mARInvoiced">—</div><div class="metric-label">Received</div><div class="metric" id="mARReceived">—</div><div class="metric-label">Outstanding</div><div class="metric" id="mAROutstanding">—</div></div>
+   </div>
+   <div class="card"><h2>Recent invoices</h2><div id="recent"></div></div>
+  </section>
+  <section id="invoices" class="page">
+   <div class="card">
+    <div class="toolbar"><input id="search" placeholder="Search supplier, customer or invoice number"><select id="directionFilter" style="max-width:170px"><option value="">All directions</option><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option></select><select id="statusFilter" style="max-width:190px"><option value="">All invoice statuses</option><option value="pending_review">Pending review</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select><select id="paymentFilter" style="max-width:190px"><option value="">All payment statuses</option><option value="unpaid">Unpaid</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option></select><select id="dueFilter" style="max-width:190px"><option value="">All due dates</option><option value="overdue">Overdue</option><option value="today">Due today</option><option value="upcoming">Upcoming</option><option value="none">No due date</option></select><button class="secondary" id="refresh">Refresh</button></div>
+    <div id="invoiceTable" class="table-wrap"></div>
+   </div>
+   <div class="card" id="advanceCreateCard">
+    <h2>Supplier & Customer Advances</h2>
+    <p class="muted">Manage standalone advances, allocate funds to approved invoices, and refund unused balances.</p>
+    <form id="advanceForm" class="toolbar" style="align-items:end;flex-wrap:wrap">
+     <div><label for="advanceDirection">Direction</label><select id="advanceDirection" required><option value="incoming">Incoming · Supplier</option><option value="outgoing">Outgoing · Customer</option></select></div>
+     <div><label for="advanceParty">Supplier / Customer</label><input id="advanceParty" required maxlength="255" placeholder="Partner name"></div>
+     <div><label for="advanceCurrency">Currency</label><input id="advanceCurrency" required maxlength="3" minlength="3" value="EUR" style="max-width:90px"></div>
+     <div><label for="advanceAmount">Amount</label><input id="advanceAmount" type="number" min="0.01" step="0.01" required placeholder="0.00"></div>
+     <div><label for="advanceDate">Received / Paid date</label><input id="advanceDate" type="date"></div>
+     <div><label for="advanceMethod">Method</label><input id="advanceMethod" maxlength="50" placeholder="Bank transfer"></div>
+     <div><label for="advanceReference">Transaction reference</label><input id="advanceReference" maxlength="255" placeholder="Reference"></div>
+     <div style="flex:1;min-width:180px"><label for="advanceNotes">Notes</label><input id="advanceNotes" maxlength="2000" placeholder="Optional notes"></div>
+     <button type="submit" id="advanceSubmit">Create advance</button>
+    </form>
+    <div id="advanceMessage"></div>
+    <div id="advanceTable" class="table-wrap"><div class="empty">Loading advances…</div></div>
+   </div>
+  </section>
+  <section id="upload" class="page">
+   <div class="card"><h2>Upload an invoice</h2><p class="muted">Choose whether this is a supplier invoice or a customer invoice. PDF, JPG, PNG or TIFF · Maximum 20 MB · AI extraction with OCR validation</p>
+    <div class="drop"><label for="invoiceDirection">Invoice direction</label><select id="invoiceDirection"><option value="incoming">Incoming · Supplier invoice</option><option value="outgoing">Outgoing · Customer invoice</option></select><input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff"><p class="muted">Select an invoice document to upload and process</p><button id="uploadBtn">Upload and process</button></div>
+    <div id="uploadResult"></div>
+   </div>
+  </section>
+
+  <section id="customers" class="page office-page"><div id="customersHost"></div></section>
+  <section id="tasks" class="page office-page"><div id="tasksHost"></div></section>
+  <section id="leads" class="page office-page"><div id="leadsHost"></div></section>
+  <section id="documents" class="page office-page"><div id="documentsHost"></div></section>
+  <section id="emails" class="page office-page"><div id="emailsHost"></div></section>
+  <section id="reports" class="page office-page"><div id="reportsHost"></div></section>
+  <section id="monitoring" class="page office-page"><div id="monitoringHost"></div></section>
+  <section id="settings" class="page office-page"><div id="emailSettingsHost"></div></section>
+ </main>
+</div>
+<div class="modal" id="editModal"><div class="modal-box">
+ <div class="modal-head"><h2>Edit invoice</h2><button class="secondary" id="closeModal">Close</button></div>
+ <div id="editMessage"></div><div id="reviewExtraction"></div><input type="hidden" id="editId">
+ <div class="form-grid">
+  <div><label>Direction</label><select id="fDirection"><option value="incoming">Incoming · Supplier</option><option value="outgoing">Outgoing · Customer</option></select></div><div><label>Supplier / Customer</label><input id="fSupplier"></div><div><label>Invoice number</label><input id="fNumber"></div>
+  <div><label>Tax ID</label><input id="fTax"></div><div><label>Currency</label><input id="fCurrency" maxlength="3"></div>
+  <div><label>Invoice date</label><input id="fDate" type="date"></div><div><label>Due date</label><input id="fDue" type="date"></div>
+  <div><label>Subtotal</label><input id="fSubtotal" type="number" min="0" step=".01"></div><div><label>Tax amount</label><input id="fTaxAmount" type="number" min="0" step=".01"></div>
+  <div><label>Total amount</label><input id="fTotal" type="number" min="0" step=".01"></div>
+ </div>
+ <label>Review notes</label><textarea id="fNotes" rows="3"></textarea>
+ <button id="saveInvoice" style="margin-top:15px">Save changes</button>
+</div></div>
+<div class="modal" id="invoiceDetailsModal"><div class="modal-box">
+ <div class="modal-head"><h2>Invoice details</h2><button class="secondary" id="closeInvoiceDetails">Close</button></div>
+ <div id="invoiceDetailsContent"></div>
+</div></div>
+<script>
+const API='/api';
+const $=id=>document.getElementById(id);
+
+
+async function checkFirstRun(){
+  const r=await fetch(API+'/auth/setup/status');
+  if(!r.ok) throw Error('Unable to check application setup status.');
+  const d=await r.json();
+
+  $('setupView').style.display='none';
+  $('loginView').style.display='grid';
+  $('appView').style.display='none';
+  $('firstRunNotice').style.display=d.setup_required?'block':'none';
+
+  return d.setup_required;
+}
+
+$('createAccountBtn').addEventListener('click',()=>{
+  $('loginView').style.display='none';
+  $('setupView').style.display='grid';
+});
+
+$('backToLoginBtn').addEventListener('click',()=>{
+  $('setupView').style.display='none';
+  $('loginView').style.display='grid';
+});
+$('setupForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  message('setupError','');
+
+  const password=$('setupPassword').value;
+  const confirm=$('setupPasswordConfirm').value;
+
+  if(password.length<12){
+    message('setupError','Password must contain at least 12 characters.',true);
+    return;
+  }
+
+  if(password!==confirm){
+    message('setupError','Passwords do not match.',true);
+    return;
+  }
+
+  try{
+    const r=await fetch(API+'/auth/setup',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        full_name:$('setupName').value.trim(),
+        email:$('setupEmail').value.trim(),
+        password:password
+      })
+    });
+
+    const d=await r.json();
+
+    if(!r.ok) throw Error(d.detail || 'Administrator setup failed.');
+
+    $('setupView').style.display='none';
+    $('loginView').style.display='grid';
+    $('firstRunNotice').style.display='none';
+    message('loginError','Administrator created. Please sign in.',false);
+    $('email').value=$('setupEmail').value.trim();
+    $('password').value='';
+  }catch(err){
+    message('setupError',err.message,true);
+  }
+});
+
+let token=localStorage.getItem('office_token')||'';
+let me=null, invoices=[];
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=(n,c)=>c?new Intl.NumberFormat(undefined,{style:'currency',currency:c}).format(Number(n||0)):`${Number(n||0).toLocaleString()} (currency unknown)`;
+async function api(path,options={}){
+ const headers={...(options.headers||{})};
+ if(token)headers.Authorization='Bearer '+token;
+ if(options.body && !(options.body instanceof FormData))headers['Content-Type']='application/json';
+ const r=await fetch(API+path,{...options,headers});
+ if(r.status===401){logout();throw Error('Session expired. Please sign in again.')}
+ const type=r.headers.get('content-type')||'';
+ const data=type.includes('json')?await r.json():await r.text();
+ if(!r.ok)throw Error(data.detail?.message||data.detail||data||'Request failed');
+ return data;
+}
+function message(target,text,error=false){$(target).innerHTML=text?`<div class="notice ${error?'error':'success'}">${esc(text)}</div>`:''}
+function logout(){token='';localStorage.removeItem('office_token');$('appView').style.display='none';$('loginView').style.display='grid'}
+$('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();message('loginError','');
+ try{
+  const body=new URLSearchParams({username:$('email').value,password:$('password').value});
+  const r=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  const d=await r.json();if(!r.ok)throw Error(d.detail||'Sign in failed');
+  token=d.access_token;localStorage.setItem('office_token',token);await start();
+ }catch(err){message('loginError',err.message,true)}
+});
+$('logout').onclick=logout;
+document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+function showPage(name){
+ $('appView').classList.toggle('email-workspace',name==='emails');
+ document.body.classList.toggle('email-workspace',name==='emails');
+ document.documentElement.classList.toggle('email-workspace',name==='emails');
+ document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));
+ document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));
+ $('pageTitle').textContent={dashboard:'Overview',invoices:'Invoice Manager',upload:'Upload invoice',customers:'Customer Manager',tasks:'Task Manager',leads:'Lead Generation',documents:'Document Automation',emails:'AI Email Manager',reports:'Business Reports',monitoring:'System Monitoring',settings:'Settings'}[name]||'Office Suite';
+ if(name==='invoices')loadInvoices();
+ if(window.officeModulePage)window.officeModulePage(name);
+}
+async function start(){
+ try{
+  me=await api('/auth/me');$('userName').textContent=me.full_name;$('userRole').textContent=me.is_superuser?'Administrator':'User';
+  $('loginView').style.display='none';$('appView').style.display='block';
+  await loadInvoices();showPage('dashboard');
+ }catch(e){message('loginError',e.message,true)}
+}
+function localDateISO(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function statusTag(s){return `<span class="status ${esc(s)}">${esc((s||'').replaceAll('_',' '))}</span>`}
+function invoicePaymentStatusTag(s,direction){
+ const label=direction==='outgoing'?({paid:'received',partially_paid:'partially received',unpaid:'not received'}[s]||s):s;
+ return `<span class="status ${esc(s)}">${esc((label||'').replaceAll('_',' '))}</span>`;
+}
+function table(items){
+ if(!items.length)return '<div class="empty">No invoices found.</div>';
+ return `<table><thead><tr><th>Invoice</th><th>Direction</th><th>Supplier / Customer</th><th>Date</th><th>Due date</th><th>Adjusted total</th><th>Settled</th><th>Outstanding</th><th>Status</th><th>Payment</th><th>Actions</th></tr></thead><tbody>${items.map(i=>`<tr>
+ <td><button type="button" class="invoice-number-link" style="background:none;border:0;padding:0;color:#2563eb;text-decoration:underline;cursor:pointer;font:inherit;font-weight:700" onclick="viewInvoice(${i.id})">${esc(i.invoice_number||'—')}</button><br><span class="muted">#${i.id}</span></td><td>${esc(i.direction||'incoming')}</td><td>${esc(i.supplier_name||(i.direction==='outgoing'?'Unknown customer':'Unknown supplier'))}</td>
+ <td>${esc(i.invoice_date||'—')}</td><td>${i.due_date?`<span class="${i.status==='approved'&&i.payment_status!=='paid'&&i.due_date<localDateISO()?'status rejected':''}">${esc(i.due_date)}</span>`:'—'}</td><td>${money(i.adjusted_total??i.total_amount,i.currency)}</td><td>${money(i.paid_amount,i.currency)}</td><td>${money(i.outstanding_amount??Math.max(0,Number(i.adjusted_total??i.total_amount??0)-Number(i.paid_amount||0)),i.currency)}</td><td>${statusTag(i.status)}</td><td>${invoicePaymentStatusTag(i.payment_status,i.direction)}</td>
+ <td><div class="actions"><button class="secondary" onclick="editInvoice(${i.id})">Edit</button><button class="secondary" onclick="downloadInvoice(${i.id})">Download</button>
+ ${me?.is_superuser&&i.status==="approved"&&Number(i.outstanding_amount??Math.max(0,Number(i.adjusted_total??i.total_amount??0)-Number(i.paid_amount||0)))>0?`<button onclick="recordInvoicePayment(${i.id},${Number(i.outstanding_amount??Math.max(0,Number(i.adjusted_total??i.total_amount??0)-Number(i.paid_amount||0)))})">${i.direction==='outgoing'?'Record receipt':'Record payment'}</button>`:""}
+ ${me?.is_superuser&&i.status==='pending_review'?`<button onclick="approve(${i.id})">Approve</button><button class="danger" onclick="reject(${i.id})">Reject</button>`:''}
+ ${me?.is_superuser&&i.status==='approved'&&i.payment_status!=='paid'?`<button onclick="markPaid(${i.id})">${i.direction==='outgoing'?'Mark received':'Mark paid'}</button>`:''}
+ </div></td></tr>`).join('')}</tbody></table>`;
+}
+async function loadInvoices(){
+ try{
+  const d=await api('/invoices?page=1&page_size=100');invoices=d.items;
+  renderInvoices();$('mTotal').textContent=d.total;
+  try{
+   const summary=await api('/invoices/summary');
+   $('mPending').textContent=summary.counts?.pending_review??0;
+   $('mApproved').textContent=summary.counts?.approved??0;
+   $('mPaid').textContent=summary.counts?.paid??0;
+   const summaryMoney=(direction,key)=>(summary.by_direction?.[direction]||[]).map(item=>
+    `${Number(item[key]).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(item.currency)}`
+   ).join(' · ')||'—';
+   $('mAPInvoiced').textContent=summaryMoney('incoming','invoiced');
+   $('mAPPaid').textContent=summaryMoney('incoming','collected');
+   $('mAPOutstanding').textContent=summaryMoney('incoming','outstanding');
+   $('mARInvoiced').textContent=summaryMoney('outgoing','invoiced');
+   $('mARReceived').textContent=summaryMoney('outgoing','collected');
+   $('mAROutstanding').textContent=summaryMoney('outgoing','outstanding');
+  }catch(summaryError){
+   ['mAPInvoiced','mAPPaid','mAPOutstanding','mARInvoiced','mARReceived','mAROutstanding'].forEach(id=>$(id).textContent='Unavailable');
+  }
+  $('recent').innerHTML=table(invoices.slice(0,5));
+  await loadAdvances();
+ }catch(e){$('invoiceTable').textContent=e.message}
+}
+async function loadAdvances(){
+ try{
+  const items=await api('/invoices/advances');
+  const admin=!!me?.is_superuser;
+  $('advanceForm').style.display=admin?'':'none';
+  if(!items.length){
+   $('advanceTable').innerHTML='<div class="empty">No advances recorded.</div>';
+   return;
+  }
+  $('advanceTable').innerHTML=`<table><thead><tr>
+   <th>Date</th><th>Direction</th><th>Partner</th><th>Currency</th><th>Original amount</th>
+   <th>Allocated</th><th>Refunded</th><th>Available</th><th>Reference</th><th>Actions</th>
+  </tr></thead><tbody>${items.map(a=>`<tr>
+   <td>${esc((a.received_at||'').slice(0,10))}</td>
+   <td>${esc(a.direction==='incoming'?'Incoming':'Outgoing')}</td>
+   <td>${esc(a.party_name)}</td><td>${esc(a.currency)}</td>
+   <td>${money(a.amount,a.currency)}</td><td>${money(a.allocated_amount,a.currency)}</td>
+   <td>${money(a.refunded_amount,a.currency)}</td><td><strong>${money(a.available_amount,a.currency)}</strong></td>
+   <td>${esc(a.transaction_reference||'—')}</td>
+   <td><div class="actions">
+    <button class="secondary" onclick="viewAdvanceHistory(${a.id})">History</button>
+    ${admin&&Number(a.available_amount)>0?`<button onclick="allocateAdvance(${a.id})">Allocate</button><button class="danger" onclick="refundAdvance(${a.id})">Refund</button>`:''}
+   </div></td>
+  </tr>`).join('')}</tbody></table>`;
+ }catch(e){
+  $('advanceTable').innerHTML=`<div class="notice error">${esc(e.message)}</div>`;
+ }
+}
+$('advanceForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const button=$('advanceSubmit');
+ button.disabled=true;
+ try{
+  const body={
+   direction:$('advanceDirection').value,
+   party_name:$('advanceParty').value.trim(),
+   currency:$('advanceCurrency').value.trim().toUpperCase(),
+   amount:$('advanceAmount').value,
+   received_at:$('advanceDate').value?$('advanceDate').value+'T12:00:00':null,
+   method:$('advanceMethod').value.trim()||null,
+   transaction_reference:$('advanceReference').value.trim()||null,
+   notes:$('advanceNotes').value.trim()||null
+  };
+  await api('/invoices/advances',{method:'POST',body:JSON.stringify(body)});
+  $('advanceForm').reset();
+  $('advanceCurrency').value='EUR';
+  $('advanceDate').value=localDateISO();
+  message('advanceMessage','Advance created successfully.');
+  await loadAdvances();
+ }catch(err){message('advanceMessage',err.message,true)}
+ finally{button.disabled=false}
+});
+window.allocateAdvance=async id=>{
+ const advanceList=await api('/invoices/advances');
+ const advance=advanceList.find(a=>a.id===id);
+ if(!advance)return;
+ const eligible=invoices.filter(i=>
+  i.status==='approved'&&i.direction===advance.direction&&
+  (i.currency||'').toUpperCase()===advance.currency.toUpperCase()&&
+  (i.supplier_name||'').trim().toLowerCase()===advance.party_name.trim().toLowerCase()&&
+  Number(i.outstanding_amount??Math.max(0,Number(i.adjusted_total??i.total_amount??0)-Number(i.paid_amount||0)))>0
+ );
+ if(!eligible.length){
+  message('advanceMessage','No approved matching invoices with an outstanding balance were found.',true);
+  return;
+ }
+ const choices=eligible.map(i=>`#${i.id} · ${i.invoice_number||'Invoice'} · ${money(i.outstanding_amount??Math.max(0,Number(i.adjusted_total??i.total_amount??0)-Number(i.paid_amount||0)),i.currency)}`).join('\n');
+ const invoiceId=prompt('Enter the invoice ID to allocate this advance to:\n\n'+choices);
+ if(invoiceId===null)return;
+ const invoice=eligible.find(i=>i.id===Number(invoiceId.trim()));
+ if(!invoice){message('advanceMessage','Invalid invoice ID. Choose one of the listed matching invoices.',true);return}
+ const amount=prompt(`Available advance: ${money(advance.available_amount,advance.currency)}\nOutstanding invoice balance: ${money(invoice.outstanding_amount??Math.max(0,Number(invoice.adjusted_total??invoice.total_amount??0)-Number(invoice.paid_amount||0)),invoice.currency)}\n\nAllocation amount:`);
+ if(amount===null)return;
+ if(!Number.isFinite(Number(amount))||Number(amount)<=0){message('advanceMessage','Enter a valid positive allocation amount.',true);return}
+ try{
+  await api(`/invoices/advances/${id}/allocations`,{method:'POST',body:JSON.stringify({invoice_id:invoice.id,amount})});
+  message('advanceMessage',`Advance allocated to invoice #${invoice.id}.`);
+  await loadInvoices();
+  await loadAdvances();
+ }catch(err){message('advanceMessage',err.message,true)}
+};
+window.refundAdvance=async id=>{
+ const items=await api('/invoices/advances');
+ const advance=items.find(a=>a.id===id);
+ if(!advance)return;
+ const amount=prompt(`Unallocated refundable balance: ${money(advance.available_amount,advance.currency)}\n\nRefund amount:`);
+ if(amount===null)return;
+ if(!Number.isFinite(Number(amount))||Number(amount)<=0){message('advanceMessage','Enter a valid positive refund amount.',true);return}
+ const reason=prompt('Refund reason (optional):');
+ if(reason===null)return;
+ const method=prompt('Refund method (optional):');
+ if(method===null)return;
+ const reference=prompt('Transaction reference (optional):');
+ if(reference===null)return;
+ try{
+  await api(`/invoices/advances/${id}/refunds`,{method:'POST',body:JSON.stringify({
+   amount,reason:reason.trim()||null,method:method.trim()||null,
+   transaction_reference:reference.trim()||null
+  })});
+  message('advanceMessage','Advance refund recorded.');
+  await loadAdvances();
+ }catch(err){message('advanceMessage',err.message,true)}
+};
+window.viewAdvanceHistory=async id=>{
+ try{
+  const [allocations,refunds]=await Promise.all([
+   api(`/invoices/advances/${id}/allocations`),
+   api(`/invoices/advances/${id}/refunds`)
+  ]);
+  const lines=[
+   'ALLOCATIONS',
+   ...(allocations.length?allocations.map(a=>`${a.allocated_at.slice(0,10)} · Invoice #${a.invoice_id} · ${a.amount}`):['No allocations']),
+   '',
+   'REFUNDS',
+   ...(refunds.length?refunds.map(r=>`${r.refunded_at.slice(0,10)} · ${r.amount} · ${r.reason||r.method||'No details'}`):['No refunds'])
+  ];
+  alert(lines.join('\n'));
+ }catch(err){message('advanceMessage',err.message,true)}
+};
+$('advanceDate').value=localDateISO();
+
+function renderInvoices(){
+ const q=$('search').value.toLowerCase(),direction=$('directionFilter').value,st=$('statusFilter').value,ps=$('paymentFilter').value,due=$('dueFilter').value;
+ const today=localDateISO();
+ $('invoiceTable').innerHTML=table(invoices.filter(i=>{
+  const dueDate=i.due_date||'';
+  const overdue=i.status==='approved'&&i.payment_status!=='paid'&&dueDate&&dueDate<today;
+  const dueMatch=!due||
+   (due==='overdue'&&overdue)||
+   (due==='today'&&dueDate===today&&i.payment_status!=='paid')||
+   (due==='upcoming'&&dueDate>today&&i.payment_status!=='paid')||
+   (due==='none'&&!dueDate);
+  return (!direction||(i.direction||'incoming')===direction)&&(!st||i.status===st)&&(!ps||i.payment_status===ps)&&dueMatch&&(`${i.supplier_name||''} ${i.invoice_number||''}`).toLowerCase().includes(q);
+ }));
+}
+$('search').oninput=renderInvoices;$('directionFilter').onchange=renderInvoices;$('statusFilter').onchange=renderInvoices;$('paymentFilter').onchange=renderInvoices;$('dueFilter').onchange=renderInvoices;$('refresh').onclick=loadInvoices;
+$('uploadBtn').onclick=async()=>{
+ const f=$('file').files[0];if(!f){message('uploadResult','Select a file first.',true);return}
+ const b=$('uploadBtn');b.disabled=true;b.textContent='Processing…';
+ try{const direction=$('invoiceDirection').value;const fd=new FormData();fd.append('file',f);fd.append('direction',direction);const d=await api('/invoices/upload',{method:'POST',body:fd});
+ const ex=d.extraction||{},v=d.validation||{},lines=Array.isArray(ex.line_items)?ex.line_items:[];
+ const lineHtml=lines.length?`<h3>Extracted line items</h3><table><thead><tr><th>Description</th><th>Qty</th><th>Unit price</th><th>Tax</th><th>Line total</th></tr></thead><tbody>${lines.map(x=>`<tr><td>${esc(x.description||'—')}</td><td>${esc(x.quantity??'—')}</td><td>${esc(x.unit_price??'—')}</td><td>${esc(x.tax_rate==null?'—':x.tax_rate+'%')}</td><td>${esc(x.line_total??'—')}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">No line items were identified.</p>';
+ const notices=[...(v.errors||[]).map(x=>`<li>${esc(x)}</li>`),...(v.warnings||[]).map(x=>`<li>${esc(x)}</li>`)];
+ $('uploadResult').innerHTML=`<div class="notice success">${direction==='outgoing'?'Customer invoice':'Supplier invoice'} uploaded as pending review. ID #${d.invoice.id}. AI extraction never approves invoices.</div><div class="card"><h3>Extracted details</h3><p>${direction==='outgoing'?'Customer':'Supplier'}: ${esc(ex.supplier_name||'Not identified')} · Invoice: ${esc(ex.invoice_number||'Not identified')} · Currency: ${esc(ex.currency||'Not identified')}</p>${lineHtml}<h3>Validation ${v.valid?'passed':'needs review'}</h3>${notices.length?`<ul>${notices.join('')}</ul>`:'<p>No validation issues found.</p>'}</div>`;
+ $('file').value='';await loadInvoices();
+ }catch(e){message('uploadResult',e.message,true)}finally{b.disabled=false;b.textContent='Upload and process'}
+};
+let invoicePreviewUrl=null;
+function clearInvoicePreview(){
+ if(invoicePreviewUrl){URL.revokeObjectURL(invoicePreviewUrl);invoicePreviewUrl=null}
+}
+$('closeInvoiceDetails').onclick=()=>{
+ clearInvoicePreview();
+ $('invoiceDetailsModal').classList.remove('open');
+};
+window.previewInvoice=async id=>{
+ const container=$('invoicePreviewContainer');
+ container.style.display='block';
+ container.innerHTML='<p class="muted">Loading original document…</p>';
+ clearInvoicePreview();
+ try{
+  const response=await fetch(API+'/invoices/'+id+'/preview',{headers:{Authorization:'Bearer '+token}});
+  if(!response.ok){
+   let detail='Unable to load invoice preview.';
+   try{const data=await response.json();detail=data.detail||detail}catch(e){}
+   throw Error(detail);
+  }
+  const blob=await response.blob();
+  invoicePreviewUrl=URL.createObjectURL(blob);
+  if(blob.type==='application/pdf'){
+   container.innerHTML='<iframe title="Original invoice PDF" style="width:100%;height:70vh;border:1px solid var(--border,#ddd);border-radius:8px" ></iframe>';
+   container.querySelector('iframe').src=invoicePreviewUrl;
+  }else if(['image/jpeg','image/png'].includes(blob.type)){
+   container.innerHTML='<img alt="Original invoice" style="display:block;max-width:100%;max-height:70vh;margin:auto;object-fit:contain">';
+   container.querySelector('img').src=invoicePreviewUrl;
+  }else{
+   container.innerHTML='<p class="muted">Preview is not available for this document format. Use Download to open the original file.</p>';
+  }
+ }catch(e){
+  clearInvoicePreview();
+  container.innerHTML=`<p class="notice error">${esc(e.message)}</p>`;
+ }
+};
+window.viewInvoice=async id=>{
+ try{
+  const i=await api('/invoices/'+id);
+  let review={},payments=[],audit=[];
+  const results=await Promise.allSettled([
+   api('/invoices/'+id+'/review'),
+   api('/invoices/'+id+'/payments'),
+   api('/invoices/'+id+'/audit')
+  ]);
+  if(results[0].status==='fulfilled')review=results[0].value;
+  if(results[1].status==='fulfilled')payments=results[1].value;
+  if(results[2].status==='fulfilled')audit=results[2].value;
+
+  let refunds=[],creditNotes=[];
+  try{refunds=await api('/invoices/'+id+'/refunds')}catch(e){console.warn('Refund history unavailable:',e.message)}
+  try{creditNotes=await api('/invoices/'+id+'/credit-notes')}catch(e){console.warn('Credit note history unavailable:',e.message)}
+  const ex=review.extraction||{},v=review.validation||{};
+  const lines=Array.isArray(ex.line_items)?ex.line_items:[];
+  const field=(label,value)=>`<div><span class="muted">${label}</span><br><strong>${esc(value??'—')}</strong></div>`;
+  const outgoing=i.direction==='outgoing';
+  const total=Number(i.total_amount||0);
+  const credited=creditNotes.reduce((sum,x)=>sum+Number(x.amount||0),0);
+  const adjustedTotal=Math.max(0,total-credited);
+  const paid=payments.reduce((sum,x)=>sum+Number(x.amount||0),0);
+  const refunded=refunds.reduce((sum,x)=>sum+Number(x.amount||0),0);
+  const advancePaid=Number(i.advance_paid_amount||0);
+  const netPaid=Number(i.paid_amount??(paid-refunded+advancePaid));
+  const remaining=Number(i.outstanding_amount??Math.max(0,adjustedTotal-netPaid));
+  const overpaid=Number(i.overpaid_amount??Math.max(0,netPaid-adjustedTotal));
+  const refundable=Math.max(0,paid-refunded);
+  const dateTime=value=>value?new Date(value).toLocaleString():'—';
+  const lineHtml=lines.length?`<h3>Invoice line items</h3><div class="table-wrap"><table><thead><tr><th>Description</th><th>Qty</th><th>Unit price</th><th>Tax</th><th>Line total</th></tr></thead><tbody>${lines.map(x=>`<tr><td>${esc(x.description||'—')}</td><td>${esc(x.quantity??'—')}</td><td>${esc(x.unit_price??'—')}</td><td>${esc(x.tax_rate==null?'—':x.tax_rate+'%')}</td><td>${esc(x.line_total??'—')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No line items identified.</p>';
+  const paymentHtml=payments.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Transaction reference</th></tr></thead><tbody>${payments.map(x=>`<tr><td>${esc(dateTime(x.paid_at))}</td><td>${money(x.amount,x.currency)}</td><td>${esc(x.method||'—')}</td><td>${esc(x.transaction_reference||'—')}</td></tr>`).join('')}</tbody></table></div>`:`<p class="muted">${outgoing?'No receipts recorded.':'No payments recorded.'}</p>`;
+  const refundHtml=refunds.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Reason</th></tr></thead><tbody>${refunds.map(x=>`<tr><td>${esc(dateTime(x.refunded_at))}</td><td>${money(x.amount,x.currency)}</td><td>${esc(x.method||'—')}</td><td>${esc(x.transaction_reference||'—')}</td><td>${esc(x.reason||'—')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No refunds recorded.</p>';
+  const creditNoteHtml=creditNotes.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Credit note number</th><th>Amount</th><th>Type</th><th>Reason</th></tr></thead><tbody>${creditNotes.map(x=>`<tr><td>${esc(dateTime(x.issued_at))}</td><td>${esc(x.credit_note_number||'—')}</td><td>${money(x.amount,x.currency)}</td><td>${x.is_cancellation?'Cancellation':'Credit note'}</td><td>${esc(x.reason||'—')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No credit notes recorded.</p>';
+  const auditHtml=audit.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Event</th><th>User ID</th><th>Details</th></tr></thead><tbody>${audit.map(x=>{let details=x.details||'—';try{if(typeof details==='string')details=JSON.stringify(JSON.parse(details))}catch{}return `<tr><td>${esc(dateTime(x.created_at))}</td><td>${esc((x.event_type||'').replaceAll('_',' '))}</td><td>${esc(x.user_id??'—')}</td><td>${esc(details)}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="muted">No audit events recorded.</p>';
+  const issues=[...(v.errors||[]),...(v.warnings||[])];
+
+  $('invoiceDetailsContent').innerHTML=`
+   <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" class="secondary" onclick="previewInvoice(${i.id})">Preview original document</button>
+    ${me?.is_superuser&&i.status==="pending_review"?`<button type="button" onclick="approve(${i.id})">Approve invoice</button><button type="button" class="danger" onclick="reject(${i.id})">Reject invoice</button>`:""}
+    ${me?.is_superuser&&i.status==='approved'&&remaining>0?`<button type="button" onclick="recordInvoicePayment(${i.id},${remaining})">${outgoing?'Record receipt':'Record payment'}</button>`:''}
+    ${me?.is_superuser&&i.status==='approved'&&remaining>0?`<button type="button" class="secondary" onclick="markPaid(${i.id})">${outgoing?'Mark remaining balance received':'Mark remaining balance paid'}</button>`:''}
+    ${me?.is_superuser&&i.status==='approved'?`<button type="button" class="secondary" onclick="recordInvoiceAdvance(${i.id})">Record advance / overpayment</button>`:''}
+    ${me?.is_superuser&&i.status==='approved'&&refundable>0?`<button type="button" class="danger" onclick="recordInvoiceRefund(${i.id},${refundable})">Record refund</button>`:''}
+    ${me?.is_superuser&&i.status==='cancelled'&&refundable>0?`<button type="button" class="danger" onclick="recordInvoiceRefund(${i.id},${refundable})">Record refund</button>`:''}
+    ${me?.is_superuser&&i.status==='approved'&&adjustedTotal>0?`<button type="button" class="secondary" onclick="recordInvoiceCreditNote(${i.id},${adjustedTotal})">Issue credit note</button><button type="button" class="danger" onclick="cancelInvoice(${i.id})">Cancel invoice (storno)</button>`:''}
+    <div id="invoicePreviewContainer" style="display:none;margin-top:14px;width:100%"></div>
+   </div>
+   <h3>Invoice information</h3>
+   <div class="form-grid">
+    ${field('Invoice number',i.invoice_number)}
+    ${field('Invoice ID','#'+i.id)}
+    ${field(outgoing?'Customer':'Supplier',i.supplier_name)}
+    ${field(outgoing?'Customer tax ID':'Supplier tax ID',i.supplier_tax_id)}
+    ${field(outgoing?'Customer address':'Supplier address',ex.supplier_address)}
+    ${field(outgoing?'Customer email':'Supplier email',ex.supplier_email)}
+    ${field('Invoice date',i.invoice_date)}
+    ${field('Due date',i.due_date)}
+    ${field('Currency',i.currency)}
+    ${field('Subtotal',money(i.subtotal,i.currency))}
+    ${field('Tax amount',money(i.tax_amount,i.currency))}
+    ${field('Original total amount',money(total,i.currency))}
+    ${field('Total credited',money(credited,i.currency))}
+    ${field('Adjusted invoice total',money(adjustedTotal,i.currency))}
+    <div><span class="muted">Invoice status</span><br>${statusTag(i.status)}</div>
+    <div><span class="muted">${outgoing?'Receipt status':'Payment status'}</span><br>${invoicePaymentStatusTag(i.payment_status,i.direction)}</div>
+    ${field(outgoing?'Net received':'Net paid',money(netPaid,i.currency))}
+    ${field('Advance allocations',money(advancePaid,i.currency))}
+    ${field('Total refunded',money(refunded,i.currency))}
+    ${field('Outstanding balance',money(remaining,i.currency))}
+    ${overpaid>0?field('Advance / overpayment',money(overpaid,i.currency)):''}
+   </div>
+   <h3>${outgoing?'Receipt history':'Payment history'}</h3>${paymentHtml}
+   <h3>Refund history</h3>${refundHtml}
+   <h3>Credit note history</h3>${creditNoteHtml}
+   <h3>Review notes</h3><p>${esc(i.review_notes||'No review notes.')}</p>
+   ${lineHtml}
+   ${issues.length?`<h3>Extraction validation</h3><ul>${issues.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+   <h3>Audit history</h3>${auditHtml}`;
+  $('invoiceDetailsModal').classList.add('open');
+ }catch(e){alert(e.message)}
+};
+window.recordInvoiceCreditNote=async(id,remaining)=>{
+ const invoice=await api('/invoices/'+id);
+ const raw=prompt('Credit note amount. Maximum creditable: '+remaining.toFixed(2)+' '+invoice.currency);
+ if(raw===null)return;
+ const amount=Number(raw.replace(',','.'));
+ if(!Number.isFinite(amount)||amount<=0||amount>remaining){
+  alert('Enter a valid amount not exceeding the remaining creditable amount.');
+  return;
+ }
+ const reason=prompt('Reason for credit note:');
+ if(reason===null)return;
+ if(reason.trim().length<3){alert('Please enter a reason of at least 3 characters.');return}
+ const number=prompt('Credit note number (optional):','');
+ if(number===null)return;
+ if(!confirm('Issue credit note for '+amount.toFixed(2)+' '+invoice.currency+'?'))return;
+ try{
+  await api(`/invoices/${id}/credit-notes`,{method:'POST',body:JSON.stringify({
+   amount,reason:reason.trim(),credit_note_number:number.trim()||null
+  })});
+  await loadInvoices();
+  await viewInvoice(id);
+ }catch(e){alert(e.message)}
+};
+window.cancelInvoice=async id=>{
+ if(!confirm('Cancel this invoice (storno)? A credit note will be created for the remaining invoice amount. Existing payments and refunds will remain unchanged.'))return;
+ try{
+  await api(`/invoices/${id}/cancel`,{method:'POST'});
+  await loadInvoices();
+  await viewInvoice(id);
+ }catch(e){alert(e.message)}
+};
+
+window.recordInvoicePayment=async(id,remaining)=>{
+ const invoice=invoices.find(x=>x.id===id)||await api('/invoices/'+id);const outgoing=invoice.direction==='outgoing';
+ const raw=prompt(`${outgoing?'Enter receipt amount':'Enter payment amount'}. Outstanding balance: ${remaining.toFixed(2)}`);
+ if(raw===null)return;
+ const amount=Number(raw.replace(',','.'));
+ if(!Number.isFinite(amount)||amount<=0){alert('Enter a valid positive amount.');return}
+ if(amount>remaining+0.000001){alert('Amount cannot exceed the outstanding balance.');return}
+ const method=prompt(outgoing?'Receipt method (for example: bank transfer, cash, card):':'Payment method (for example: bank transfer, cash, card):','bank transfer');
+ if(method===null)return;
+ const reference=prompt('Transaction reference (optional):','');
+ if(reference===null)return;
+ try{
+  await api(`/invoices/${id}/payments`,{method:'POST',body:JSON.stringify({
+   amount:amount,
+   method:method.trim()||null,
+   transaction_reference:reference.trim()||null
+  })});
+  await loadInvoices();
+  await viewInvoice(id);
+ }catch(e){alert(e.message)}
+};
+window.recordInvoiceAdvance=async id=>{
+ try{
+  const invoice=await api('/invoices/'+id);
+  if(!confirm('Record an advance payment for this invoice?'))return;
+  const raw=prompt('Advance amount ('+invoice.currency+'):', '');
+  if(raw===null)return;
+  const amount=Number(raw);
+  if(!Number.isFinite(amount)||amount<=0){alert('Enter a valid positive amount.');return}
+  const reference=prompt('Payment transaction reference (optional):','');
+  if(reference===null)return;
+  await api('/invoices/'+id+'/payments',{
+   method:'POST',
+   body:JSON.stringify({
+    amount,
+    method:'advance',
+    transaction_reference:reference.trim()||null
+   })
+  });
+  alert('Advance payment recorded.');
+  await loadInvoices();
+  await viewInvoice(id);
+ }catch(e){alert(e.message)}
+};
+
+window.recordInvoiceRefund=async(id,refundable)=>{
+ try{
+  const invoice=await api('/invoices/'+id);
+  const raw=prompt('Refund amount. Maximum refundable: '+refundable.toFixed(2)+' '+invoice.currency,refundable.toFixed(2));
+  if(raw===null)return;
+  const amount=Number(raw);
+  if(!Number.isFinite(amount)||amount<=0||amount>refundable){
+   alert('Enter a valid amount not exceeding the refundable amount.');
+   return;
+  }
+  const method=prompt('Refund method (bank transfer, cash, card):','bank transfer');
+  if(method===null)return;
+  const reference=prompt('Refund transaction reference (optional):','');
+  if(reference===null)return;
+  const reason=prompt('Refund reason:','');
+  if(reason===null)return;
+  if(!confirm('Record refund of '+amount.toFixed(2)+' '+invoice.currency+'?'))return;
+  await api('/invoices/'+id+'/refunds',{
+   method:'POST',
+   body:JSON.stringify({
+    amount,
+    method:method.trim()||null,
+    transaction_reference:reference.trim()||null,
+    reason:reason.trim()||null
+   })
+  });
+  alert('Refund recorded.');
+  await loadInvoices();
+  await viewInvoice(id);
+ }catch(e){alert(e.message)}
+};
+
+window.editInvoice=async id=>{
+ try{const i=await api('/invoices/'+id);$('editId').value=id;
+ const review=await api('/invoices/'+id+'/review'),ex=review.extraction||{},v=review.validation||{},items=Array.isArray(ex.line_items)?ex.line_items:[];
+ const reviewLines=items.length?`<h3>AI extracted line items</h3><table><thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Tax</th><th>Total</th></tr></thead><tbody>${items.map(x=>`<tr><td>${esc(x.description||'—')}</td><td>${esc(x.quantity??'—')}</td><td>${esc(x.unit_price??'—')}</td><td>${esc(x.tax_rate==null?'—':x.tax_rate+'%')}</td><td>${esc(x.line_total??'—')}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">No line items identified.</p>';
+ const issues=[...(v.errors||[]),...(v.warnings||[])];
+ $('reviewExtraction').innerHTML=`<div class="notice ${issues.length?'error':'success'}">${issues.length?'Validation needs review':'Validation passed'} · Invoice remains ${esc(i.status)}${issues.length?`<ul>${issues.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>${reviewLines}`;
+ const fields={fDirection:i.direction||'incoming',fSupplier:i.supplier_name,fNumber:i.invoice_number,fTax:i.supplier_tax_id,fCurrency:i.currency,fDate:i.invoice_date,fDue:i.due_date,fSubtotal:i.subtotal,fTaxAmount:i.tax_amount,fTotal:i.total_amount,fNotes:i.review_notes};
+ for(const [k,v] of Object.entries(fields))$(k).value=v??'';
+ message('editMessage','');$('editModal').classList.add('open');
+ }catch(e){alert(e.message)}
+};
+$('closeModal').onclick=()=>$('editModal').classList.remove('open');
+$('saveInvoice').onclick=async()=>{
+ const n=id=>$(id).value;
+ const payload={direction:n('fDirection'),supplier_name:n('fSupplier')||null,invoice_number:n('fNumber')||null,supplier_tax_id:n('fTax')||null,currency:n('fCurrency').toUpperCase(),invoice_date:n('fDate')||null,due_date:n('fDue')||null,subtotal:Number(n('fSubtotal')),tax_amount:Number(n('fTaxAmount')),total_amount:Number(n('fTotal')),review_notes:n('fNotes')||null};
+ try{await api('/invoices/'+n('editId'),{method:'PATCH',body:JSON.stringify(payload)});$('editModal').classList.remove('open');await loadInvoices()}catch(e){message('editMessage',e.message,true)}
+};
+window.downloadInvoice=async id=>{
+ try{const r=await fetch(API+'/invoices/'+id+'/download',{headers:{Authorization:'Bearer '+token}});if(!r.ok)throw Error('Download failed');
+ const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='invoice-'+id;a.click();URL.revokeObjectURL(url);
+ }catch(e){alert(e.message)}
+};
+window.approve=async id=>{if(!confirm('Approve this invoice?'))return;const detailOpen=$('invoiceDetailsModal')?.classList.contains('open');try{await api(`/invoices/${id}/approve`,{method:'POST'});await loadInvoices();if(detailOpen)await viewInvoice(id)}catch(e){alert(e.message)}};
+window.reject=async id=>{const reason=prompt('Reason for rejection (at least 5 characters):');if(!reason)return;try{if(reason.trim().length<5){alert('Rejection reason must contain at least 5 characters.');return}const detailOpen=$('invoiceDetailsModal')?.classList.contains('open');await api(`/invoices/${id}/reject`,{method:'POST',body:JSON.stringify({reason})});await loadInvoices();if(detailOpen)await viewInvoice(id)}catch(e){alert(e.message)}};
+window.markPaid=async id=>{try{const i=invoices.find(x=>x.id===id)||await api('/invoices/'+id);const outgoing=i.direction==='outgoing';if(!confirm(outgoing?'Mark this invoice as fully received?':'Mark this invoice as fully paid?'))return;await api(`/invoices/${id}/mark-paid`,{method:'POST'});await loadInvoices();if($('invoiceDetailsModal')?.classList.contains('open'))await viewInvoice(id)}catch(e){alert(e.message)}};
+(async()=>{
+  try{
+    const setupRequired=await checkFirstRun();
+    if(!setupRequired && token) await start();
+  }catch(err){
+    $('loginView').style.display='grid';
+    message('loginError',err.message,true);
+  }
+})();
+</script>
+
+<script>
+const officeModules={
+ customers:{title:'Customer Manager',singular:'Customer',desc:'Manage companies, contacts and customer relationships.',fields:[['company','Company'],['email','Email','email'],['phone','Phone'],['contact','Contact person'],['website','Website']]},
+ tasks:{title:'Task Manager',singular:'Task',desc:'Manage deadlines, priorities and task status.',fields:[['due_date','Due date','date'],['priority','Priority','select','low,normal,high,urgent'],['assignee','Assignee'],['category','Category']]},
+ leads:{title:'Lead Generation',singular:'Lead',desc:'Manage prospects and sales pipeline.',fields:[['company','Company'],['email','Email','email'],['phone','Phone'],['source','Source'],['value','Estimated value','number'],['next_step','Next step']]},
+ documents:{title:'Document Automation',singular:'Document',desc:'Manage document records and lifecycle.',fields:[['document_type','Document type'],['reference','Reference'],['customer','Customer'],['document_date','Document date','date']]},
+};
+const officeStatuses={
+ customers:'active,inactive,prospect',
+ tasks:'open,in_progress,blocked,completed,cancelled',
+ leads:'new,contacted,qualified,proposal,won,lost',
+ documents:'draft,final,archived',
+ emails:'draft,queued,sent,received,archived'
+};
+const officeCache={};
+const officePretty=s=>String(s||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+const officePill=s=>`<span class="office-pill">${esc(officePretty(s))}</span>`;
+function officeFormField(f,v=''){
+ const [key,label,type='text',opts]=f,id='of_'+key;
+ if(type==='select')return `<label>${esc(label)}<select id="${id}">${opts.split(',').map(x=>`<option>${esc(x)}</option>`).join('')}</select></label>`;
+ if(type==='textarea')return `<label class="wide">${esc(label)}<textarea id="${id}" rows="4">${esc(v)}</textarea></label>`;
+ return `<label>${esc(label)}<input id="${id}" type="${type}" value="${esc(v)}"></label>`;
+}
+function officeModal(){
+ let m=$('officeRecordModal');if(m)return m;
+ m=document.createElement('div');m.id='officeRecordModal';m.className='modal';
+ m.innerHTML=`<div class="modal-box"><div class="modal-head"><h2 id="officeModalTitle">New record</h2><button class="secondary" type="button" id="officeClose">Close</button></div><div id="officeMessage"></div><form id="officeForm"><input type="hidden" id="officeId"><div id="officeFields" class="office-form"></div><label>Notes<textarea id="officeNotes" rows="3"></textarea></label><div class="toolbar" style="margin-top:16px"><button type="submit">Save record</button><button type="button" class="secondary" id="officeCancel">Cancel</button></div></form></div>`;
+ document.body.appendChild(m);
+ const close=()=>m.classList.remove('open');
+ $('officeClose').onclick=close;$('officeCancel').onclick=close;
+ $('officeForm').onsubmit=saveOfficeRecord;
+ return m;
+}
+function openOfficeRecord(kind,id=null){
+ const cfg=officeModules[kind],item=id?(officeCache[kind]||[]).find(x=>x.id===id):null;
+ officeModal();$('officeModalTitle').textContent=(item?'Edit ':'New ')+cfg.singular;
+ $('officeId').value=item?.id||'';$('officeNotes').value=item?.notes||'';
+ const statuses=officeStatuses[kind].split(',');
+ const defaultStatus={customers:'active',tasks:'open',leads:'new',documents:'draft',emails:'draft'}[kind];
+ $('officeFields').innerHTML=`<label class="wide">Title<input id="of_title" required maxlength="255" value="${esc(item?.title||'')}"></label><label>Status<select id="of_status">${statuses.map(x=>`<option value="${x}" ${x===(item?.status||defaultStatus)?'selected':''}>${officePretty(x)}</option>`).join('')}</select></label>${cfg.fields.map(f=>officeFormField(f,item?.data?.[f[0]]||'')).join('')}`;
+ $('officeMessage').innerHTML='';$('officeRecordModal').classList.add('open');
+}
+async function saveOfficeRecord(e){
+ e.preventDefault();const kind=document.querySelector('.office-page.active')?.id;
+ if(!officeModules[kind])return;
+ const cfg=officeModules[kind],id=$('officeId').value,data={};
+ cfg.fields.forEach(f=>{const el=$('of_'+f[0]);if(el)data[f[0]]=el.value.trim()});
+ const payload={title:$('of_title').value.trim(),status:$('of_status').value,data,notes:$('officeNotes').value.trim()||null};
+ const btn=$('officeForm').querySelector('[type=submit]');btn.disabled=true;
+ try{
+  await api(`/records/${kind}${id?'/'+id:''}`,{method:id?'PATCH':'POST',body:JSON.stringify(payload)});
+  $('officeRecordModal').classList.remove('open');await loadOfficeModule(kind);
+ }catch(err){$('officeMessage').innerHTML=`<div class="notice error">${esc(err.message)}</div>`}
+ finally{btn.disabled=false}
+}
+async function loadOfficeModule(kind){
+ const host=$(kind+'Host');host.innerHTML='<div class="card">Loading records…</div>';
+ try{const d=await api(`/records/${kind}?page=1&page_size=200`);officeCache[kind]=d.items||[];renderOfficeModule(kind,d)}
+ catch(e){host.innerHTML=`<div class="card notice error">${esc(e.message)}</div>`}
+}
+function officeRows(kind,items){
+ if(!items.length)return '<div class="office-empty">No records yet. Create your first record.</div>';
+ return `<table><thead><tr><th>Title</th><th>Details</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>${items.map(x=>{
+ const details=Object.entries(x.data||{}).filter(([,v])=>v!==''&&v!=null).slice(0,4).map(([k,v])=>`<div><span class="office-muted">${esc(officePretty(k))}:</span> ${esc(v)}</div>`).join('')||'—';
+ return `<tr><td><strong>${esc(x.title)}</strong><br><span class="office-muted">#${x.id}</span></td><td>${details}</td><td>${officePill(x.status)}</td><td>${esc(x.updated_at?new Date(x.updated_at).toLocaleDateString():'—')}</td><td><div class="office-actions"><button class="secondary" onclick="openOfficeRecord('${kind}',${x.id})">Edit</button><button class="danger" onclick="deleteOfficeRecord('${kind}',${x.id})">Delete</button></div></td></tr>`;
+ }).join('')}</tbody></table>`;
+}
+function renderOfficeModule(kind,d){
+ const cfg=officeModules[kind],host=$(kind+'Host');
+ host.innerHTML=`<div class="office-head"><div><h2>${cfg.title}</h2><p>${cfg.desc}</p></div><button onclick="openOfficeRecord('${kind}')">+ New ${cfg.singular}</button></div><div class="card"><div class="office-toolbar"><input id="${kind}Search" placeholder="Search…"><select id="${kind}Status"><option value="">All statuses</option>${officeStatuses[kind].split(',').map(x=>`<option value="${x}">${officePretty(x)}</option>`).join('')}</select><button class="secondary" id="${kind}Refresh">Refresh</button><span class="office-muted" id="${kind}Count">${d.total} records</span></div><div class="office-table" id="${kind}Table">${officeRows(kind,d.items||[])}</div></div>`;
+ $(kind+'Search').oninput=()=>filterOfficeModule(kind);
+ $(kind+'Status').onchange=()=>filterOfficeModule(kind);
+ $(kind+'Refresh').onclick=()=>loadOfficeModule(kind);
+}
+function filterOfficeModule(kind){
+ const q=$(kind+'Search').value.toLowerCase(),st=$(kind+'Status').value;
+ const all=officeCache[kind]||[];
+ const filtered=all.filter(x=>(!st||x.status===st)&&(`${x.title} ${JSON.stringify(x.data||{})} ${x.notes||''}`).toLowerCase().includes(q));
+ $(kind+'Table').innerHTML=officeRows(kind,filtered);
+ $(kind+'Count').textContent=`${filtered.length} of ${all.length} records`;
+}
+async function deleteOfficeRecord(kind,id){
+ if(!confirm('Delete this record permanently?'))return;
+ try{await api(`/records/${kind}/${id}`,{method:'DELETE'});await loadOfficeModule(kind)}
+ catch(e){alert(e.message)}
+}
+window.openOfficeRecord=openOfficeRecord;window.deleteOfficeRecord=deleteOfficeRecord;
+
+let emailManagerStatus = null;
+
+const emailProviderPresets = {
+ gmail:{imap_host:'imap.gmail.com',imap_port:993,imap_ssl:true,smtp_host:'smtp.gmail.com',smtp_port:587,smtp_ssl:false,smtp_starttls:true},
+ microsoft:{imap_host:'outlook.office365.com',imap_port:993,imap_ssl:true,smtp_host:'smtp.office365.com',smtp_port:587,smtp_ssl:false,smtp_starttls:true},
+ yahoo:{imap_host:'imap.mail.yahoo.com',imap_port:993,imap_ssl:true,smtp_host:'smtp.mail.yahoo.com',smtp_port:587,smtp_ssl:false,smtp_starttls:true},
+ icloud:{imap_host:'imap.mail.me.com',imap_port:993,imap_ssl:true,smtp_host:'smtp.mail.me.com',smtp_port:587,smtp_ssl:false,smtp_starttls:true},
+ other:{imap_host:'',imap_port:993,imap_ssl:true,smtp_host:'',smtp_port:587,smtp_ssl:false,smtp_starttls:true}
+};
+
+function emailProviderChanged(){
+ const provider=$('emailProvider').value,p=emailProviderPresets[provider]||emailProviderPresets.other;
+ for(const [key,value] of Object.entries(p)){
+  const el=$('email_'+key);
+  if(el)el.type==='checkbox'?el.checked=value:el.value=value;
+ }
+}
+
+async function loadEmailManager(){
+ const host=$('emailsHost');
+ host.innerHTML='<div class="card">Loading Email Manager…</div>';
+ try{
+  emailManagerStatus=await api('/email/status');
+  renderEmailManager();
+  if(emailManagerStatus.configured)await refreshEmailInbox();
+ }catch(e){host.innerHTML=`<div class="card notice error">${esc(e.message)}</div>`}
+}
+
+
+let emailMessages = [];
+let emailSelectedUid = null;
+let emailCurrentMessage = null;
+let emailAttachments = [];
+
+function renderEmailManager(){
+ const host=$('emailsHost'),s=emailManagerStatus;
+ if(!s)return;
+ const active=s.active_account||null;
+ emailSelectedUid=null;
+ emailMessages=[];
+
+ host.innerHTML=`
+ <div class="office-head">
+  <div><h2>AI Email Manager</h2><p>Manage your inbox and send messages</p></div>
+  <button class="secondary" onclick="loadEmailManager()">Refresh</button>
+ </div>
+ <div class="card">
+  <h2>Active email account</h2>
+  ${active?`
+   <div class="email-status">
+    <span>Account: <strong>${esc(active.email_address)}</strong></span>
+    <span>IMAP: <strong>${esc(active.connection_status==='connected'?'Connected':'Not tested')}</strong></span>
+    <span>Mailbox: <strong>${esc(active.mailbox)}</strong></span>
+   </div>
+   <p class="office-muted">IMAP ${esc(active.imap.host)}:${active.imap.port} · SMTP ${esc(active.smtp.host)}:${active.smtp.port}</p>
+   <div id="emailConnectionResult"></div>
+  `:'<div class="office-empty">No active email account. Configure one in Settings → Email Settings.</div>'}
+ </div>
+ <div class="email-layout">
+  <div class="card email-inbox-panel">
+   <div class="office-head">
+    <div><h2>Inbox</h2><p id="emailInboxInfo">Latest messages</p></div>
+    <button class="secondary" id="emailRefreshBtn" ${!active?'disabled':''}>Refresh</button>
+   </div>
+   <div id="emailInbox">${active?'<div class="office-empty">Loading messages…</div>':'<div class="office-empty">Configure an email account in Settings to view messages.</div>'}</div>
+  </div>
+  <div class="card email-viewer-panel">
+   <div class="email-viewer-toolbar">
+    <h2 id="emailViewerHeading">Message Viewer</h2>
+    <div class="email-message-actions">
+     <button id="emailComposeOpen" ${!active?'disabled':''}>Compose Email</button>
+     <button class="secondary" id="emailReplyBtn" disabled>Reply</button>
+     <button class="secondary" id="emailReplyAllBtn" disabled>Reply All</button>
+     <button class="secondary" id="emailForwardBtn" disabled>Forward</button>
+    </div>
+   </div>
+   <div id="emailMessageViewer">
+    <div class="office-empty">Select an email from your inbox to read it.</div>
+   </div>
+   <div id="emailComposePanel" hidden>
+    <form id="emailComposeForm">
+     <label for="emailTo">To</label>
+     <input id="emailTo" type="text" placeholder="recipient@example.com" required>
+     <p class="office-muted">Separate multiple addresses with commas.</p>
+     <label for="emailCc">CC</label>
+     <input id="emailCc" type="text" placeholder="Optional">
+     <div class="email-attachment-controls">
+      <input id="emailAttachmentInput" type="file" multiple hidden>
+      <button type="button" id="emailAttachBtn">Attach files</button>
+      <span class="office-muted">Up to 10 files · 10 MB each · 20 MB total</span>
+     </div>
+     <div id="emailAttachmentList" class="email-attachment-list"></div>
+     <label for="emailSubject">Subject</label>
+     <input id="emailSubject" maxlength="998" required>
+     <label for="emailBody">Message</label>
+     <textarea id="emailBody" maxlength="200000" required></textarea>
+     <div class="toolbar" style="margin-top:14px">
+      <button id="emailSendBtn" type="submit" ${!active?'disabled':''}>Send email</button>
+      <button type="button" class="secondary" id="emailComposeCancel">Cancel</button>
+     </div>
+    </form>
+    <div id="emailSendResult"></div>
+    <p class="office-muted">Messages are sent using the active email account.</p>
+   </div>
+  </div>
+ </div>`;
+
+ $('emailComposeForm').onsubmit=sendEmailMessage;
+ $('emailAttachBtn').onclick=()=>$('emailAttachmentInput').click();
+ $('emailAttachmentInput').onchange=addEmailAttachments;
+ $('emailAttachmentList').onclick=removeEmailAttachment;
+ renderEmailAttachments();
+ $('emailComposeOpen').onclick=openEmailCompose;
+ $('emailReplyBtn').onclick=()=>prepareEmailAction('reply');
+ $('emailReplyAllBtn').onclick=()=>prepareEmailAction('reply-all');
+ $('emailForwardBtn').onclick=()=>prepareEmailAction('forward');
+ $('emailComposeCancel').onclick=closeEmailCompose;
+
+ if(active){
+  $('emailRefreshBtn').onclick=refreshEmailInbox;
+ }
+}
+
+function openEmailCompose(){
+ $('emailMessageViewer').hidden=true;
+ $('emailComposePanel').hidden=false;
+ $('emailViewerHeading').textContent='Compose Email';
+ $('emailComposeForm').reset();
+ message('emailSendResult','');
+ $('emailTo').focus();
+}
+
+function closeEmailCompose(){
+ $('emailComposePanel').hidden=true;
+ $('emailMessageViewer').hidden=false;
+ $('emailViewerHeading').textContent=emailCurrentMessage?.subject||'Message Viewer';
+}
+
+function extractEmailAddresses(value){
+ return [...String(value||'').matchAll(/[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)]
+  .map(match=>match[0].toLowerCase());
+}
+
+function prepareEmailAction(action){
+ const m=emailCurrentMessage;
+ if(!m)return;
+
+ const account=(emailManagerStatus?.active_account?.email_address||'').toLowerCase();
+ const from=extractEmailAddresses(m.from);
+ const originalTo=extractEmailAddresses(m.to);
+ const originalCc=extractEmailAddresses(m.cc);
+ let recipients=[];
+ let subject=m.subject||'';
+
+ if(action==='reply'){
+  recipients=from;
+  if(!/^(re):/i.test(subject))subject='Re: '+subject;
+ }else if(action==='reply-all'){
+  recipients=[...new Set([...from,...originalTo,...originalCc])]
+   .filter(address=>address!==account);
+  if(!/^(re):/i.test(subject))subject='Re: '+subject;
+ }else{
+  if(!/^(fwd):/i.test(subject))subject='Fwd: '+subject;
+ }
+
+ const originalText=(m.text||'').trim()||emailHtmlToText(m.html)||'';
+ let body='';
+ if(action==='forward'){
+  body='\n\n---------- Forwarded message ----------\n'
+   +'From: '+(m.from||'')+'\n'
+   +'To: '+(m.to||'')+'\n'
+   +(m.date?'Date: '+m.date+'\n':'')
+   +'Subject: '+(m.subject||'')+'\n\n'
+   +originalText;
+ }else{
+  body='\n\nOn '+(m.date||'')+', '+(m.from||'the sender')+' wrote:\n'
+   +originalText.split('\n').map(line=>'> '+line).join('\n');
+ }
+
+ $('emailMessageViewer').hidden=true;
+ $('emailComposePanel').hidden=false;
+ $('emailViewerHeading').textContent=
+  action==='reply'?'Reply':action==='reply-all'?'Reply All':'Forward';
+ $('emailTo').value=recipients.join(', ');
+ $('emailCc').value='';
+ $('emailSubject').value=subject;
+ $('emailBody').value=body;
+ message('emailSendResult','');
+ $('emailTo').focus();
+}
+
+function emailHtmlToText(html){
+ const doc=new DOMParser().parseFromString(String(html||''),'text/html');
+ const blocks=new Set(['ADDRESS','ARTICLE','ASIDE','BLOCKQUOTE','DIV','FIGURE','FOOTER','H1','H2','H3','H4','H5','H6','HEADER','LI','P','PRE','SECTION','TABLE','TR','UL','OL']);
+ function read(node){
+  if(node.nodeType===Node.TEXT_NODE)return node.nodeValue||'';
+  if(node.nodeType!==Node.ELEMENT_NODE)return '';
+  const tag=node.tagName;
+  if(['SCRIPT','STYLE','NOSCRIPT','TEMPLATE'].includes(tag))return '';
+  if(tag==='BR')return '\n';
+  let value='';
+  for(const child of node.childNodes)value+=read(child);
+  return blocks.has(tag)?'\n'+value+'\n':value;
+ }
+ return read(doc.body).replace(/[\t\u00a0 ]+/g,' ').replace(/ *\n */g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+async function openEmailMessage(uid){
+ emailSelectedUid=String(uid);
+ emailCurrentMessage=null;
+ $('emailReplyBtn').disabled=true;
+ $('emailReplyAllBtn').disabled=true;
+ $('emailForwardBtn').disabled=true;
+ document.querySelectorAll('.email-message').forEach(row=>{
+  row.classList.toggle('selected',row.dataset.uid===emailSelectedUid);
+ });
+
+ closeEmailCompose();
+ const viewer=$('emailMessageViewer');
+ viewer.innerHTML='<div class="office-empty">Loading message…</div>';
+
+ try{
+  const m=await api(`/email/message/${encodeURIComponent(emailSelectedUid)}`);
+  if(emailSelectedUid!==String(uid))return;
+
+  emailCurrentMessage=m;
+  $('emailReplyBtn').disabled=false;
+  $('emailReplyAllBtn').disabled=false;
+  $('emailForwardBtn').disabled=false;
+  $('emailViewerHeading').textContent=m.subject||'(no subject)';
+  const readableText=(m.text||'').trim()||emailHtmlToText(m.html)||'No readable text content available.';
+  const body=`<pre class="email-plain-body">${esc(readableText)}</pre>`;
+
+  viewer.innerHTML=`
+   <div class="email-message-details">
+    <div><strong>From:</strong> ${esc(m.from||'Unknown')}</div>
+    <div><strong>To:</strong> ${esc(m.to||'')}</div>
+    ${m.cc?`<div><strong>CC:</strong> ${esc(m.cc)}</div>`:''}
+    <div><strong>Date:</strong> ${esc(m.date||'')}</div>
+   </div>
+   <div class="email-message-body">${body}</div>`;
+
+ }catch(e){
+  viewer.innerHTML=`<div class="notice error">${esc(e.message)}</div>`;
+ }
+}
+
+function renderEmailInboxPage(){
+ const host=$('emailInbox');
+ host.innerHTML=emailMessages.map(m=>`
+  <div class="email-message" data-uid="${esc(m.uid)}" role="button" tabindex="0">
+   <div class="email-message-content">
+    <strong>${esc(m.from_address||m.from||'Unknown')}</strong>
+    <small>${esc(m.subject||'(no subject)')}</small>
+    <p>${esc(m.snippet||'No preview available.')}</p>
+   </div>
+   <div class="email-message-date">${esc(m.date||'')}</div>
+  </div>`).join('');
+
+ host.querySelectorAll('.email-message').forEach(row=>{
+  row.addEventListener('click',()=>openEmailMessage(row.dataset.uid));
+  row.addEventListener('keydown',e=>{
+   if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmailMessage(row.dataset.uid)}
+  });
+ });
+}
+
+async function refreshEmailInbox(){
+ const host=$('emailInbox');
+ if(!host)return;
+ host.innerHTML='<div class="office-empty">Loading inbox…</div>';
+ try{
+  const d=await api('/email/inbox?limit=50');
+  emailMessages=d.items||[];
+  $('emailInboxInfo').textContent=`${d.count} messages · ${d.mailbox}`;
+  if(!emailMessages.length){
+   host.innerHTML='<div class="office-empty">Your inbox is empty.</div>';
+   return;
+  }
+  renderEmailInboxPage();
+ }catch(e){host.innerHTML=`<div class="notice error">${esc(e.message)}</div>`}
+}
+
+function renderEmailAttachments(){
+ const host=$('emailAttachmentList');
+ if(!host)return;
+ host.innerHTML=emailAttachments.map((file,index)=>`
+  <div class="email-attachment-item">
+   <span>${esc(file.name)} <small>(${(file.size/1048576).toFixed(2)} MB)</small></span>
+   <button type="button" class="secondary" data-remove-attachment="${index}" aria-label="Remove ${esc(file.name)}">Remove</button>
+  </div>`).join('');
+}
+
+function addEmailAttachments(){
+ const input=$('emailAttachmentInput');
+ const incoming=Array.from(input.files||[]);
+ input.value='';
+ const combined=[...emailAttachments,...incoming];
+ if(combined.length>10){
+  message('emailSendResult','You can attach up to 10 files.',true);
+  return;
+ }
+ if(combined.some(file=>file.size>10*1024*1024)){
+  message('emailSendResult','Each attachment must be 10 MB or smaller.',true);
+  return;
+ }
+ if(combined.reduce((sum,file)=>sum+file.size,0)>20*1024*1024){
+  message('emailSendResult','Total attachments must be 20 MB or smaller.',true);
+  return;
+ }
+ emailAttachments=combined;
+ message('emailSendResult','');
+ renderEmailAttachments();
+}
+
+function removeEmailAttachment(event){
+ const button=event.target.closest('[data-remove-attachment]');
+ if(!button)return;
+ emailAttachments.splice(Number(button.dataset.removeAttachment),1);
+ renderEmailAttachments();
+}
+
+function readEmailAttachment(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onload=()=>{
+   const result=String(reader.result||'');
+   const comma=result.indexOf(',');
+   if(comma<0){reject(Error('Could not read attachment: '+file.name));return}
+   resolve({
+    filename:file.name,
+    content_type:file.type||'application/octet-stream',
+    content_base64:result.slice(comma+1)
+   });
+  };
+  reader.onerror=()=>reject(Error('Could not read attachment: '+file.name));
+  reader.readAsDataURL(file);
+ });
+}
+
+async function sendEmailMessage(e){
+ e.preventDefault();
+ const btn=$('emailSendBtn');
+ const split=id=>$(id).value.split(',').map(x=>x.trim()).filter(Boolean);
+ const payload={to:split('emailTo'),cc:split('emailCc'),subject:$('emailSubject').value.trim(),body:$('emailBody').value};
+ btn.disabled=true;
+ try{
+  payload.attachments=await Promise.all(emailAttachments.map(readEmailAttachment));
+  const d=await api('/email/send',{method:'POST',body:JSON.stringify(payload)});
+  message('emailSendResult',`Email sent successfully. Recipients: ${d.recipients}.`);
+  $('emailComposeForm').reset();
+  emailAttachments=[];
+  renderEmailAttachments();
+ }catch(e){message('emailSendResult',e.message,true)}
+ finally{btn.disabled=false}
+}
+
+window.loadEmailManager=loadEmailManager;
+
+async function loadOfficeReports(){
+ const host=$('reportsHost');host.innerHTML='<div class="card">Loading reports…</div>';
+ try{
+  const d=await api('/reports/summary'),i=d.invoices||{},r=d.records||{};
+  const totals=Object.entries(i.amounts_by_currency||{}),paidTotals=Object.entries(i.paid_amounts_by_currency||{});
+  const currencyRows=(rows)=>rows.length?rows.map(([c,v])=>`<tr><td>${esc(c)}</td><td>${esc(money(v,c==='UNKNOWN'?null:c))}</td></tr>`).join(''):'<tr><td colspan="2">No invoice totals</td></tr>';
+  host.innerHTML=`<div class="office-head"><div><h2>Business Reports</h2><p>Live database summary · ${esc(d.generated_on||'')}</p></div><button class="secondary" onclick="loadOfficeReports()">Refresh</button></div><div class="office-kpis"><div class="office-kpi"><span>Total invoices</span><strong>${Number(i.count||0)}</strong></div><div class="office-kpi"><span>Pending review</span><strong>${Number(i.pending_review||0)}</strong></div></div><div class="card"><h2>Invoice totals by currency</h2><div class="office-table"><table><thead><tr><th>Currency</th><th>Total</th></tr></thead><tbody>${currencyRows(totals)}</tbody></table></div><h3>Paid totals by currency</h3><div class="office-table"><table><thead><tr><th>Currency</th><th>Paid total</th></tr></thead><tbody>${currencyRows(paidTotals)}</tbody></table></div></div><div class="card"><h2>Workspace records</h2><div class="office-table"><table><thead><tr><th>Module</th><th>Records</th></tr></thead><tbody>${Object.entries(r).map(([k,v])=>`<tr><td>${esc(officePretty(k))}</td><td>${Number(v)}</td></tr>`).join('')}</tbody></table></div></div>`;
+ }catch(e){host.innerHTML=`<div class="card notice error">${esc(e.message)}</div>`}
+}
+async function loadOfficeMonitoring(){
+ const host=$('monitoringHost');host.innerHTML='<div class="card">Checking system…</div>';
+ try{
+  const d=await api('/monitoring/status'),checks=d.checks||{};
+  host.innerHTML=`<div class="office-head"><div><h2>System Monitoring</h2><p>Application dependencies and integration readiness</p></div><button class="secondary" onclick="loadOfficeMonitoring()">Refresh checks</button></div><div class="card"><h2>Health checks · ${esc(d.status||'unknown')}</h2>${Object.entries(checks).map(([k,v])=>`<div class="office-check"><div><strong>${esc(officePretty(k))}</strong><small>${esc(v.detail||v.path||'')}</small>${v.free_bytes!==undefined?`<small>Free storage: ${(v.free_bytes/1073741824).toFixed(2)} GB / ${(v.total_bytes/1073741824).toFixed(2)} GB</small>`:''}</div>${officePill(v.status)}</div>`).join('')}</div><div class="notice">Integrations marked Not Configured require provider credentials. No connection or email delivery is simulated.</div>`;
+ }catch(e){host.innerHTML=`<div class="card notice error">${esc(e.message)}</div>`}
+}
+window.loadOfficeReports=loadOfficeReports;window.loadOfficeMonitoring=loadOfficeMonitoring;
+window.officeModulePage=name=>{
+ if(officeModules[name])loadOfficeModule(name);
+ else if(name==='emails')window.loadAIEmailManager?.();
+ else if(name==='settings')loadEmailSettings();
+ else if(name==='reports')loadOfficeReports();
+ else if(name==='monitoring')loadOfficeMonitoring();
+};
+</script>
+
+
+<style id="ai-email-manager-style">
+.aiem-header{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:16px;flex-wrap:wrap;width:100%;min-width:0
+}
+.aiem-heading{min-width:0}
+.aiem-heading h2{margin:0 0 3px}
+.aiem-header-actions{
+ display:flex;align-items:center;justify-content:flex-end;
+ gap:10px;flex:0 0 auto
+}
+.aiem-header-actions .aiem-btn{white-space:nowrap;min-width:120px}
+.aiem-tabs{
+ display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+ margin:16px 0;padding-bottom:12px;
+ border-bottom:1px solid var(--border,#ddd)
+}
+.aiem-tabs button{min-width:110px}
+@media(max-width:600px){
+ .aiem-header{align-items:flex-start}
+ .aiem-header-actions{width:100%;justify-content:flex-start}
+ .aiem-header-actions .aiem-btn{flex:1}
+ .aiem-tabs button{flex:1 1 calc(50% - 8px)}
+}
+
+#aiEmailManagerHost{margin-top:22px;color:var(--text,#222)}
+.aiem-shell{
+ display:flex;flex:1 1 0;flex-direction:column;
+ min-width:0;min-height:0;height:100%;overflow:hidden;
+ border:1px solid var(--border,#ddd);border-radius:14px;
+ padding:18px;background:var(--card,#fff)
+}
+.aiem-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.aiem-tabs button,.aiem-btn{
+ border:1px solid var(--border,#ccc);border-radius:8px;
+ padding:9px 13px;background:var(--surface,#f6f6f6);
+ cursor:pointer;color:inherit
+}
+.aiem-tabs button.active,.aiem-btn.primary{
+ background:var(--primary,#2457d6);color:white;border-color:transparent
+}
+.aiem-layout{
+ display:grid;grid-template-columns:minmax(155px,18%) minmax(230px,30%) minmax(0,1fr);
+ grid-template-rows:minmax(0,1fr);gap:16px;
+ width:100%;height:100%;min-width:0;min-height:0;overflow:hidden
+}
+.aiem-folders,.aiem-list,.aiem-detail{
+ border:1px solid var(--border,#ddd);border-radius:10px;padding:12px;
+ min-width:0;min-height:0;height:100%;overflow-x:hidden;overflow-y:auto;
+ overscroll-behavior:contain;overflow-wrap:anywhere
+}
+.aiem-item{
+ display:block;width:100%;text-align:left;padding:11px;margin:5px 0;
+ border:1px solid var(--border,#ddd);border-radius:8px;
+ background:transparent;color:inherit;cursor:pointer;overflow-wrap:anywhere
+}
+.aiem-item:hover{background:var(--surface,#f4f4f4)}
+.aiem-muted{opacity:.7;font-size:.9em}
+.aiem-pill{display:inline-block;border-radius:20px;padding:3px 8px;background:var(--surface,#eee);font-size:.8em;margin:3px}
+.aiem-field{
+ width:100%;box-sizing:border-box;padding:10px;
+ border:1px solid var(--border,#ccc);border-radius:8px;
+ background:var(--input-bg,transparent);color:inherit;margin:6px 0 12px
+}
+.aiem-result{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.aiem-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.aiem-card{border:1px solid var(--border,#ddd);border-radius:9px;padding:13px;margin:9px 0}
+
+/* Full-viewport email workspace with independent inbox and message scrolling */
+html.email-workspace,body.email-workspace{
+ height:100%;min-height:0;overflow:hidden!important
+}
+body.email-workspace #appView{
+ display:block;height:100vh;min-height:0;overflow:hidden
+}
+body.email-workspace #appView>.main{
+ box-sizing:border-box;height:100vh;min-height:0;
+ display:flex;flex-direction:column;overflow:hidden
+}
+body.email-workspace #appView>.main>.top{flex:0 0 auto}
+body.email-workspace #emails.page.active{
+ display:flex;flex:1 1 0;flex-direction:column;
+ min-width:0;min-height:0;overflow:hidden
+}
+body.email-workspace #emailsHost{
+ display:flex;flex:1 1 0;flex-direction:column;
+ min-width:0;min-height:0;overflow:hidden
+}
+body.email-workspace .aiem-shell{flex:1 1 0}
+body.email-workspace .aiem-shell>div:first-child,
+body.email-workspace .aiem-shell>.aiem-tabs,
+body.email-workspace .aiem-shell>#aiemStatus,
+body.email-workspace .aiem-shell>p{flex:0 0 auto}
+body.email-workspace #aiemContent{
+ display:flex;flex:1 1 0;flex-direction:column;
+ min-width:0;min-height:0;overflow:hidden
+}
+body.email-workspace .aiem-layout{flex:1 1 0}
+@media(max-width:850px){
+ body.email-workspace #appView{
+  display:flex;flex-direction:column;height:100vh
+ }
+ body.email-workspace #appView>.sidebar{
+  position:relative;inset:auto;width:100%;flex:0 0 auto
+ }
+ body.email-workspace #appView>.main{
+  flex:1 1 0;width:100%;height:auto;min-height:0;
+  margin:0;padding:16px
+ }
+}
+@media(max-width:700px){
+ body.email-workspace .aiem-layout{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto minmax(130px,34%) minmax(0,1fr)
+ }
+ body.email-workspace .aiem-folders{display:flex;gap:6px;flex-wrap:wrap}
+ body.email-workspace .aiem-folders .aiem-item{width:auto;flex:1 1 auto;margin:0}
+}
+
+.aiem-header{flex:0 0 auto}
+body.email-workspace #aiemContent.aiem-assistant-view{
+ display:block;flex:1 1 0;min-width:0;min-height:0;
+ overflow-x:hidden;overflow-y:auto;
+ overscroll-behavior:contain
+}
+body.email-workspace #aiemContent.aiem-assistant-view .aiem-card{
+ height:auto;min-height:min-content;overflow:visible;
+ margin:0 0 16px
+}
+</style>
+<script id="AI_EMAIL_MANAGER_V1">
+(()=>{
+"use strict";
+const host=document.getElementById("emailsHost");
+if(!host || host.dataset.initialized==="1") return;
+host.dataset.initialized="1";
+
+const state={tab:"inbox",folder:"inbox",messages:[],folderItems:[],currentDraftId:null,draftAttachments:[],selected:null,detail:null,analysis:null,followups:[],compose:{to:"",cc:"",subject:"",body:""},attachments:[],account:null};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const request=async(path,options={})=>{
+  if(typeof window.api!=="function") throw new Error("The Office Suite API client is unavailable.");
+  return await window.api(path,options);
+};
+const messageId=m=>String(m.uid??m.id??"");
+const messageTitle=m=>m.subject||"(No subject)";
+const messageSender=m=>m.from||m.from_address||"Unknown sender";
+const selectedMessage=()=>state.detail||state.selected;
+const setStatus=s=>{const el=host.querySelector("#aiemStatus");if(el)el.textContent=s||"";};
+
+host.innerHTML=`
+<div class="aiem-shell">
+ <header class="aiem-header">
+  <div class="aiem-heading">
+   <h2>AI Email Manager</h2>
+   <div class="aiem-muted">Human-reviewed email intelligence and workflow assistance</div>
+  </div>
+  <div class="aiem-header-actions">
+   
+   <button class="aiem-btn primary" id="aiemCompose" type="button">Compose</button>
+  </div>
+ </header>
+ <nav class="aiem-tabs" aria-label="AI Email Manager sections">
+  <button class="aiem-btn" id="aiemRefresh" type="button">Refresh Inbox</button>
+  <button data-tab="inbox" class="active">AI Inbox</button>
+  <button data-tab="assistant">AI Assistant</button>
+  <button data-tab="actions">AI Actions</button>
+  <button data-tab="followups">AI Follow-ups</button>
+  <button data-tab="configure">Configure AI</button>
+ </nav>
+ <div id="aiemStatus" class="aiem-muted" role="status"></div>
+ <section id="aiemContent"></section>
+ <p class="aiem-muted">AI-powered email analysis uses your connected Gemini account. Review all classifications and drafts. Nothing is sent or created without your confirmation.</p>
+</div>`;
+
+const content=host.querySelector("#aiemContent");
+const render=()=>{
+ content.classList.toggle("aiem-assistant-view",state.tab==="assistant");
+ host.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===state.tab));
+ if(state.tab==="inbox") renderInbox();
+ if(state.tab==="assistant") renderAssistant();
+ if(state.tab==="actions") renderActions();
+ if(state.tab==="followups") renderFollowups();
+ if(state.tab==="configure") renderConfigureAI();
+};
+
+const renderConfigureAI=async()=>{
+ content.innerHTML=`
+  <div class="aiem-card">
+   <h3>Configure Gemini AI</h3>
+   <p>Connect your own Google Gemini API key to enable AI-powered email classification, analysis and reply suggestions.</p>
+   <h4>Step 1 — Google account</h4>
+   <p>You need a Google account. Each Office Suite user connects their own API key.</p>
+   <h4>Step 2 — Create your API key</h4>
+   <p>Open Google AI Studio, sign in and create an API key for your project.</p>
+   <p><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Open Google AI Studio — API keys</a></p>
+   <h4>Step 3 — Connect your key</h4>
+   <label for="aiemGeminiKey">Gemini API key</label>
+   <input class="aiem-field" id="aiemGeminiKey" type="password" autocomplete="off" placeholder="Paste your API key">
+   <label style="display:flex;gap:9px;align-items:flex-start;margin:10px 0">
+    <input id="aiemGeminiPrivacy" type="checkbox" style="margin-top:4px">
+    <span>I understand that email content submitted for AI processing is sent to Google Gemini. Google's data handling and retention policies apply. I will not submit confidential or sensitive content unless permitted by my organization's policies.</span>
+   </label>
+   <button class="aiem-btn primary" id="aiemGeminiConnect" type="button">Verify and connect</button>
+   <button class="aiem-btn" id="aiemGeminiDisconnect" type="button" hidden>Disconnect Gemini</button>
+   <p id="aiemGeminiStatus" class="aiem-muted" role="status">Checking connection…</p>
+   <p class="aiem-muted">Your API key is stored encrypted on the server and is never displayed again. AI setup is optional; your regular email features remain available without it.</p>
+  </div>`;
+
+ const keyInput=content.querySelector("#aiemGeminiKey");
+ const privacy=content.querySelector("#aiemGeminiPrivacy");
+ const connect=content.querySelector("#aiemGeminiConnect");
+ const disconnect=content.querySelector("#aiemGeminiDisconnect");
+ const status=content.querySelector("#aiemGeminiStatus");
+
+ try{
+  const config=await request("/ai-settings/gemini");
+  if(config.configured){
+   status.textContent="Gemini AI is connected. Model: "+(config.model||"Available Gemini model");
+   disconnect.hidden=false;
+  }else{
+   status.textContent="Gemini AI is not configured. Follow the steps above to connect.";
+  }
+ }catch(e){
+  status.textContent="Could not check Gemini configuration: "+(e.message||e);
+ }
+
+ connect.addEventListener("click",async()=>{
+  const key=keyInput.value.trim();
+  if(!key){status.textContent="Please enter your Gemini API key.";keyInput.focus();return;}
+  if(!privacy.checked){status.textContent="Please acknowledge the Google data-processing notice before connecting.";return;}
+  connect.disabled=true;
+  status.textContent="Verifying your API key with Google…";
+  try{
+   const result=await request("/ai-settings/gemini/connect",{
+    method:"POST",
+    body:JSON.stringify({api_key:key,privacy_acknowledged:true})
+   });
+   keyInput.value="";
+   status.textContent="AI Ready — Gemini connected. Model: "+result.model;
+   disconnect.hidden=false;
+  }catch(e){
+   status.textContent="Connection failed: "+(e.message||e);
+  }finally{
+   connect.disabled=false;
+  }
+ });
+
+ disconnect.addEventListener("click",async()=>{
+  disconnect.disabled=true;
+  try{
+   await request("/ai-settings/gemini",{method:"DELETE"});
+   keyInput.value="";
+   privacy.checked=false;
+   disconnect.hidden=true;
+   status.textContent="Gemini disconnected. Regular email features are unaffected.";
+  }catch(e){
+   status.textContent="Could not disconnect Gemini: "+(e.message||e);
+  }finally{
+   disconnect.disabled=false;
+  }
+ });
+};
+const loadInbox=async()=>{
+ setStatus("Loading inbox…");
+ try{
+  try{state.account=await request("/email/status");}catch(_){state.account=null;}
+  const result=await request("/email/inbox?limit=50");
+  state.messages=Array.isArray(result)?result:(result.messages||result.items||[]);
+  state.selected=null;state.detail=null;state.analysis=null;
+  setStatus(`${state.messages.length} messages loaded.`);
+  render();
+ }catch(e){setStatus("Inbox could not be loaded: "+(e.message||e));}
+};
+const loadMessage=async m=>{
+ state.selected=m;state.detail=null;state.analysis=null;
+ render();
+ try{
+  const id=encodeURIComponent(messageId(m));
+  state.detail=await request("/email/message/"+id);
+  render();
+ }catch(e){setStatus("Could not load message: "+(e.message||e));}
+};
+const loadFolder=async folder=>{
+ state.folder=folder;
+ state.selected=null;state.detail=null;state.analysis=null;
+ if(folder==="inbox"){await loadInbox();return;}
+ setStatus("Loading "+folder+"…");
+ try{
+  const result=await request("/email/folders/"+folder);
+  state.folderItems=result.items||[];
+  setStatus(state.folderItems.length+" "+folder+" messages loaded.");
+  render();
+ }catch(e){setStatus("Could not load "+folder+": "+(e.message||e));}
+};
+const moveLocalItem=async(item,folder)=>{
+ try{
+  await request("/email/folders/items/"+encodeURIComponent(item.id),{
+   method:"PATCH",body:JSON.stringify({folder})
+  });
+  state.selected=null;state.detail=null;
+  await loadFolder(state.folder);
+  setStatus("Message moved to "+folder+".");
+ }catch(e){setStatus("Could not move message: "+(e.message||e));}
+};
+const openLocalItem=item=>{
+ state.selected=item;state.detail=item;state.analysis=null;
+ if(item.folder==="drafts"){
+  state.currentDraftId=item.id;
+  state.compose={to:item.to||"",cc:item.cc||"",subject:item.subject||"",body:item.body||""};
+  state.draftAttachments=item.attachments||[];
+  state.attachments=[];
+  state.tab="assistant";
+  render();
+ }else render();
+};
+const renderInbox=()=>{
+ const previousList=content.querySelector(".aiem-list");
+ const listScrollTop=previousList?.scrollTop??0;
+ const isInbox=state.folder==="inbox";
+ const rows=isInbox?state.messages:state.folderItems;
+ const list=rows.map((m,i)=>`
+  <button class="aiem-item" data-message-index="${i}">
+   <strong>${esc(messageTitle(m))}</strong>
+   <div class="aiem-muted">${esc(messageSender(m)||m.to||"")}</div>
+   <div class="aiem-muted">${esc(m.date||m.created_at||"")}</div>
+   <div>${esc(m.snippet||m.body||"")}</div>
+  </button>`).join("")||`<p class="aiem-muted">No messages in ${esc(state.folder)}.</p>`;
+ const m=selectedMessage();
+ const folderButtons=[["inbox","Inbox"],["drafts","Drafts"],["sent","Sent"],["trash","Trash"]]
+  .map(([key,label])=>`<button class="aiem-item" data-folder="${key}" ${state.folder===key?'aria-current="page"':""}>${label}</button>`).join("");
+ content.innerHTML=`<div class="aiem-layout">
+ <div class="aiem-folders"><h3>Folders</h3>${folderButtons}</div>
+ <div class="aiem-list"><h3>${esc(state.folder[0].toUpperCase()+state.folder.slice(1))}</h3>${list}</div>
+ <div class="aiem-detail">${m?`
+  <h3>${esc(messageTitle(m))}</h3>
+  <div class="aiem-muted">${esc(messageSender(m)||m.to||"")} · ${esc(m.date||m.created_at||"")}</div>
+  <div class="aiem-actions">
+   ${isInbox?`<button class="aiem-btn primary" id="aiemAnalyze">Analyze Email</button>
+   <button class="aiem-btn" data-compose-action="reply">Reply</button>
+   <button class="aiem-btn" data-compose-action="reply-all">Reply All</button>
+   <button class="aiem-btn" data-compose-action="forward">Forward</button>`:""}
+   
+   ${m.folder==="drafts"?'<button class="aiem-btn primary" id="aiemEditDraft">Edit Draft</button>':""}
+   ${!isInbox&&m.folder!=="trash"?'<button class="aiem-btn" id="aiemMoveTrash">Move to Trash</button>':""}
+   ${m.folder==="trash"?'<button class="aiem-btn" id="aiemRestore">Restore</button><button class="aiem-btn" id="aiemDeleteForever">Delete Permanently</button>':""}
+   <button class="aiem-btn" id="aiemOpenAssistant">AI Assistant</button>
+  </div>
+  <div class="aiem-result">${esc(m.text||m.body||m.snippet||"")}</div>
+  ${state.analysis?analysisMarkup(state.analysis):""}
+ `:'<p class="aiem-muted">Select a message to view it.</p>'}</div></div>`;
+ const newList=content.querySelector(".aiem-list");
+ if(newList)newList.scrollTop=listScrollTop;
+
+ content.querySelectorAll("[data-folder]").forEach(b=>b.onclick=()=>loadFolder(b.dataset.folder));
+ content.querySelectorAll("[data-message-index]").forEach(b=>b.onclick=()=>{
+  const item=rows[Number(b.dataset.messageIndex)];
+  if(isInbox)loadMessage(item);else openLocalItem(item);
+ });
+ const analyze=content.querySelector("#aiemAnalyze");
+ if(analyze)analyze.onclick=()=>analyzeSelected();
+ content.querySelectorAll("[data-compose-action]").forEach(b=>b.onclick=()=>{
+  if(b.dataset.composeAction==="new"){
+   state.currentDraftId=null;state.draftAttachments=[];
+  }
+  startComposer(b.dataset.composeAction,m);
+ });
+ const edit=content.querySelector("#aiemEditDraft");
+ if(edit)edit.onclick=()=>openLocalItem(m);
+ const trash=content.querySelector("#aiemMoveTrash");
+ if(trash)trash.onclick=()=>moveLocalItem(m,"trash");
+ const restore=content.querySelector("#aiemRestore");
+ if(restore)restore.onclick=()=>moveLocalItem(m,m.previous_folder||"drafts");
+ const del=content.querySelector("#aiemDeleteForever");
+ if(del)del.onclick=async()=>{
+  if(!confirm("Permanently delete this item?"))return;
+  try{
+   await request("/email/folders/items/"+encodeURIComponent(m.id),{method:"DELETE"});
+   state.selected=null;state.detail=null;await loadFolder("trash");
+  }catch(e){setStatus("Could not delete item: "+(e.message||e));}
+ };
+ const assistant=content.querySelector("#aiemOpenAssistant");
+ if(assistant)assistant.onclick=()=>{state.tab="assistant";render();};
+};
+const analysisMarkup=a=>`<div class="aiem-card"><h3>AI Classification</h3>
+ <span class="aiem-pill">${esc(a.category)}</span><span class="aiem-pill">${esc(a.priority)} Priority</span>
+ <p>${esc(a.explanation)}</p><p><strong>Next action:</strong> ${esc(a.next_action)}</p>
+ <h4>Summary</h4><p>${esc(a.summary||"")}</p>
+ <h4>Action items</h4>${(a.action_items||[]).map(x=>`<p>• ${esc(x)}</p>`).join("")||"<p class='aiem-muted'>No clear action items detected.</p>"}
+ <h4>Deadline hints</h4>${(a.deadline_hints||[]).map(x=>`<span class="aiem-pill">${esc(x)}</span>`).join("")||"<span class='aiem-muted'>None detected</span>"}
+ </div>`;
+const analyzeSelected=async()=>{
+ const m=selectedMessage();if(!m)return;
+ setStatus("Analyzing message…");
+ try{state.analysis=await request("/ai-email/analyze",{method:"POST",body:JSON.stringify({message:m})});setStatus("Analysis complete. Human review required.");render();}
+ catch(e){setStatus("Analysis failed: "+(e.message||e));}
+};
+const addresses=value=>[...String(value||"").matchAll(/[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map(x=>x[0].toLowerCase());
+
+const startComposer=(action,m)=>{
+ const account=String(state.account?.active_account?.email_address||"").toLowerCase();
+ const from=addresses(m?.from||m?.from_address||"");
+ const to=addresses(m?.to||"");
+ const cc=addresses(m?.cc||"");
+ let recipients=[],subject=m?.subject||"";
+
+ if(action==="reply"){
+  recipients=from;
+  if(!/^re:/i.test(subject))subject="Re: "+subject;
+ }else if(action==="reply-all"){
+  recipients=[...new Set([...from,...to,...cc])].filter(x=>x!==account);
+  if(!/^re:/i.test(subject))subject="Re: "+subject;
+ }else if(action==="forward"&&!/^fwd:/i.test(subject)){
+  subject="Fwd: "+subject;
+ }
+
+ let body="";
+ if(action==="reply"||action==="reply-all"){
+  const original=m?.text||m?.snippet||"";
+  body="\n\nOn "+(m?.date||"")+", "+(m?.from||"the sender")+" wrote:\n"+
+       original.split("\n").map(x=>"> "+x).join("\n");
+ }else if(action==="forward"){
+  body="\n\n---------- Forwarded message ----------\n"+
+       "From: "+(m?.from||"")+"\nTo: "+(m?.to||"")+
+       "\nSubject: "+(m?.subject||"")+"\n\n"+(m?.text||m?.snippet||"");
+ }
+
+ state.compose={to:recipients.join(", "),cc:"",subject,body};
+ state.tab="assistant";
+ render();
+};
+
+const renderAssistant=()=>{
+ const m=selectedMessage();
+ const c=state.compose;
+
+ content.innerHTML=`<div class="aiem-card">
+ <h3>AI Assistant & Email Composer</h3>
+ <p class="aiem-muted">${m?"Selected email: "+esc(messageTitle(m)):"Compose a new email or select a message in AI Inbox."}</p>
+
+ <div class="aiem-actions">
+  <button class="aiem-btn" id="aiemReply" ${m?"":"disabled"}>Reply</button>
+  <button class="aiem-btn" id="aiemReplyAll" ${m?"":"disabled"}>Reply All</button>
+  <button class="aiem-btn" id="aiemForward" ${m?"":"disabled"}>Forward</button>
+ </div>
+
+ <label for="aiemTone">AI reply tone</label>
+ <select class="aiem-field" id="aiemTone">
+  <option>Professional</option><option>Friendly</option><option>Formal</option><option>Concise</option>
+ </select>
+
+ <label for="aiemInstructions">Additional AI instructions</label>
+ <textarea class="aiem-field" id="aiemInstructions" rows="2" placeholder="Context, key points, language or other instructions"></textarea>
+
+ <div class="aiem-actions">
+  <button class="aiem-btn primary" id="aiemGenerate" ${m?"":"disabled"}>Generate AI Reply</button>
+  <button class="aiem-btn" id="aiemSummarize" ${m?"":"disabled"}>Analyze / Summarize</button>
+ </div>
+
+ <form id="aiemComposeForm">
+  <label for="emailTo">To</label>
+  <input class="aiem-field" id="emailTo" required placeholder="recipient@example.com" value="${esc(c.to)}">
+
+  <label for="emailCc">CC</label>
+  <input class="aiem-field" id="emailCc" placeholder="Optional" value="${esc(c.cc)}">
+
+  <label for="emailSubject">Subject</label>
+  <input class="aiem-field" id="emailSubject" maxlength="998" required value="${esc(c.subject)}">
+
+  <label for="emailBody">Email message / editable AI draft</label>
+  <textarea class="aiem-field" id="emailBody" rows="12" maxlength="200000" required placeholder="Write your message or generate an AI reply.">${esc(c.body)}</textarea>
+
+  <label for="emailAttachmentInput">Attachments</label>
+  <input class="aiem-field" id="emailAttachmentInput" type="file" multiple>
+  <div id="emailAttachmentList" class="aiem-muted"></div>
+
+  <div class="aiem-actions">
+   <button class="aiem-btn primary" id="emailSendBtn" type="submit">Send Email</button>
+   <button class="aiem-btn" id="aiemSaveDraft" type="button">Save Draft</button>
+   <button class="aiem-btn" id="aiemCopy" type="button">Copy Draft</button>
+  </div>
+  <div id="emailSendResult" class="aiem-muted" role="status"></div>
+ </form>
+
+ <p class="aiem-muted">AI drafts are editable. Nothing is sent until you explicitly select Send Email.</p>
+ </div>`;
+
+ const sync=()=>{
+  state.compose={
+   to:content.querySelector("#emailTo").value,
+   cc:content.querySelector("#emailCc").value,
+   subject:content.querySelector("#emailSubject").value,
+   body:content.querySelector("#emailBody").value
+  };
+ };
+
+ ["emailTo","emailCc","emailSubject","emailBody"].forEach(id=>{
+  content.querySelector("#"+id).addEventListener("input",sync);
+ });
+
+
+ if(m){
+  content.querySelector("#aiemReply").onclick=()=>startComposer("reply",m);
+  content.querySelector("#aiemReplyAll").onclick=()=>startComposer("reply-all",m);
+  content.querySelector("#aiemForward").onclick=()=>startComposer("forward",m);
+ }
+
+ content.querySelector("#aiemGenerate").onclick=async()=>{
+  sync();
+  setStatus("Generating AI reply draft...");
+  try{
+   const result=await request("/ai-email/suggest-reply",{
+    method:"POST",
+    body:JSON.stringify({
+     message:m,
+     tone:content.querySelector("#aiemTone").value,
+     instructions:content.querySelector("#aiemInstructions").value
+    })
+   });
+   content.querySelector("#emailBody").value=result.draft||"";
+   sync();
+   setStatus("AI draft generated. Review and edit it before sending.");
+  }catch(e){
+   setStatus("Draft generation failed: "+(e.message||e));
+  }
+ };
+
+ content.querySelector("#aiemSummarize").onclick=async()=>{
+  state.tab="inbox";
+  render();
+  await analyzeSelected();
+ };
+
+ content.querySelector("#aiemSaveDraft").onclick=async()=>{
+  sync();
+  const button=content.querySelector("#aiemSaveDraft");
+  button.disabled=true;
+  try{
+   const attachments=[
+    ...(state.draftAttachments||[]),
+    ...await Promise.all((state.attachments||[]).map(file=>readEmailAttachment(file)))
+   ];
+   const result=await request("/email/folders/drafts",{
+    method:"POST",
+    body:JSON.stringify({...state.compose,attachments,id:state.currentDraftId})
+   });
+   state.currentDraftId=result.id;
+   state.draftAttachments=attachments;
+   state.attachments=[];
+   setStatus("Draft saved.");
+  }catch(e){setStatus("Draft could not be saved: "+(e.message||e));}
+  finally{button.disabled=false;}
+ };
+
+ content.querySelector("#aiemCopy").onclick=async()=>{
+  const value=content.querySelector("#emailBody").value;
+  if(!value)return setStatus("There is no draft to copy.");
+  try{
+   await navigator.clipboard.writeText(value);
+   setStatus("Draft copied.");
+  }catch(e){
+   setStatus("Clipboard unavailable. Select and copy the draft manually.");
+  }
+ };
+
+ content.querySelector("#emailAttachmentInput").onchange=()=>{
+  const files=Array.from(content.querySelector("#emailAttachmentInput").files||[]);
+  const combined=[...(state.attachments||[]),...files];
+  if(combined.length>10||combined.some(f=>f.size>10*1024*1024)||
+     combined.reduce((n,f)=>n+f.size,0)>20*1024*1024){
+   setStatus("Attachments: maximum 10 files, 10 MB each and 20 MB total.");
+   content.querySelector("#emailAttachmentInput").value="";
+   return;
+  }
+  state.attachments=combined;
+  content.querySelector("#emailAttachmentList").textContent=
+   combined.map(f=>f.name+" ("+(f.size/1048576).toFixed(2)+" MB)").join(" · ");
+ };
+
+ content.querySelector("#aiemComposeForm").onsubmit=async e=>{
+  e.preventDefault();
+  sync();
+  const btn=content.querySelector("#emailSendBtn");
+  btn.disabled=true;
+  setStatus("Sending email...");
+
+  try{
+   const attachments=[
+    ...(state.draftAttachments||[]),
+    ...await Promise.all((state.attachments||[]).map(file=>readEmailAttachment(file)))
+   ];
+   const result=await request("/email/send",{
+    method:"POST",
+    body:JSON.stringify({
+     to:addresses(state.compose.to),
+     cc:addresses(state.compose.cc),
+     subject:state.compose.subject.trim(),
+     body:state.compose.body,
+     attachments
+    })
+   });
+
+   state.attachments=[];
+   state.draftAttachments=[];
+   state.currentDraftId=null;
+   state.compose={to:"",cc:"",subject:"",body:""};
+   setStatus("Email sent successfully. Recipients: "+(result.recipients||"confirmed")+(result.archive_saved===false?" (Sent archive could not be saved).":"."));
+   if(state.folder==="sent")await loadFolder("sent");
+   renderAssistant();
+  }catch(e){
+   setStatus("Email could not be sent: "+(e.message||e));
+   btn.disabled=false;
+  }
+ };
+};
+const createTask=async(title,description)=>{
+ if(!confirm("Create this item in Task Manager?"))return;
+ try{
+  await request("/records/tasks",{method:"POST",body:JSON.stringify({
+   title,status:"open",notes:description,
+   data:{source:"AI Email Manager",requires_review:true}
+  })});
+  setStatus("Task created in Task Manager.");
+ }catch(e){setStatus("Task could not be created: "+(e.message||e));}
+};
+const renderActions=()=>{
+ const m=selectedMessage(),a=state.analysis;
+ content.innerHTML=`<div class="aiem-card"><h3>AI Actions</h3>
+ <p class="aiem-muted">Convert reviewed email requests into Task Manager items. Duplicate subjects are checked within the currently loaded inbox.</p>
+ ${m?`<h4>${esc(messageTitle(m))}</h4><p>${esc(messageSender(m))}</p>`:"<p>Select and analyze an email in AI Inbox first.</p>"}
+ ${a?(a.action_items||[]).map((item,i)=>`<div class="aiem-card"><p>${esc(item)}</p><button class="aiem-btn" data-action-index="${i}">Create Task</button></div>`).join("")||"<p>No action items were detected.</p>":"<p class='aiem-muted'>Run Analyze Email in AI Inbox to extract action items.</p>"}
+ <div class="aiem-actions"><button class="aiem-btn" id="aiemCreateReviewTask" ${m?"":"disabled"}>Create Review Task</button></div>
+ </div>`;
+ content.querySelectorAll("[data-action-index]").forEach(b=>b.onclick=()=>{
+  const item=a.action_items[Number(b.dataset.actionIndex)];
+  const duplicate=state.messages.some(x=>x!==m&&String(x.subject||"").trim().toLowerCase()===String(m.subject||"").trim().toLowerCase()&&String(x.from_address||x.from||"").trim().toLowerCase()===String(m.from_address||m.from||"").trim().toLowerCase());
+  if(duplicate&&!confirm("A similar sender and subject exists in the loaded inbox. Create this task anyway?"))return;
+  createTask(item,`Email: ${m.subject||"(No subject)"}\nFrom: ${messageSender(m)}\nMessage UID: ${messageId(m)}`);
+ });
+ const review=content.querySelector("#aiemCreateReviewTask");
+ if(review)review.onclick=()=>createTask("Review email: "+messageTitle(m),`Review email from ${messageSender(m)}. Message UID: ${messageId(m)}`);
+};
+const renderFollowups=async()=>{
+ const m=selectedMessage();
+ content.innerHTML=`<div class="aiem-card"><h3>AI Follow-ups</h3>
+ <p>Track replies, promised documents, offers and deadlines. Every follow-up is saved in Task Manager. No email is sent automatically.</p>
+ ${m?`<h4>${esc(messageTitle(m))}</h4>
+ <label for="aiemFollowupTitle">Follow-up title</label>
+ <input id="aiemFollowupTitle" class="aiem-field" value="Follow up: ${esc(messageTitle(m))}">
+ <label for="aiemFollowupNotes">Notes / expected response</label>
+ <textarea id="aiemFollowupNotes" class="aiem-field" rows="3" placeholder="What are we waiting for?"></textarea>
+ <label for="aiemFollowupDue">Due date (optional)</label>
+ <input id="aiemFollowupDue" class="aiem-field" type="date">
+ <button class="aiem-btn primary" id="aiemAddFollowup">Create Follow-up</button>`:"<p class='aiem-muted'>Select an email in AI Inbox to create a follow-up.</p>"}
+ <h4>Saved follow-ups</h4><div id="aiemFollowupList" class="aiem-muted">Loading saved follow-ups…</div>
+ </div>`;
+
+ const add=content.querySelector("#aiemAddFollowup");
+ if(add)add.onclick=async()=>{
+  const title=content.querySelector("#aiemFollowupTitle").value.trim();
+  if(!title)return setStatus("Enter a follow-up title.");
+  if(!confirm("Save this follow-up in Task Manager?"))return;
+  const notes=content.querySelector("#aiemFollowupNotes").value.trim();
+  const dueDate=content.querySelector("#aiemFollowupDue").value;
+  try{
+   await request("/records/tasks",{method:"POST",body:JSON.stringify({
+    title,status:"open",
+    notes:[notes,`Email: ${messageTitle(m)}`,`Sender: ${messageSender(m)}`,`Message UID: ${messageId(m)}`].filter(Boolean).join("\\n"),
+    data:{source:"AI Email Manager",workflow:"followup",requires_review:true,email_uid:messageId(m),email_subject:messageTitle(m),email_sender:messageSender(m),due_date:dueDate||null}
+   })});
+   setStatus("Follow-up saved.");
+   await renderFollowups();
+  }catch(e){setStatus("Follow-up could not be saved: "+(e.message||e));}
+ };
+
+ const list=content.querySelector("#aiemFollowupList");
+ try{
+  const result=await request("/records/tasks?page=1&page_size=200");
+  const records=(result.items||[]).filter(x=>x.data&&x.data.source==="AI Email Manager"&&x.data.workflow==="followup");
+  state.followups=records;
+  if(!records.length){
+   list.innerHTML="<p class='aiem-muted'>No saved follow-ups yet.</p>";
+   return;
+  }
+  list.innerHTML=records.map(x=>`
+   <div class="aiem-card" data-followup-id="${Number(x.id)}">
+    <strong>${esc(x.title)}</strong>
+    <p class="aiem-muted">${esc(x.data.email_sender||"")} · ${esc(x.data.email_subject||"")}</p>
+    ${x.data.due_date?`<p>Due: ${esc(x.data.due_date)}</p>`:""}
+    ${x.notes?`<p>${esc(x.notes).replace(/\\n/g,"<br>")}</p>`:""}
+    <label>Status</label>
+    <select class="aiem-field" data-followup-status>
+     ${["open","in_progress","blocked","completed","cancelled"].map(v=>`<option value="${v}" ${x.status===v?"selected":""}>${v.replace("_"," ")}</option>`).join("")}
+    </select>
+    <button class="aiem-btn" data-followup-save>Save status</button>
+   </div>`).join("");
+  list.querySelectorAll("[data-followup-save]").forEach(button=>{
+   button.onclick=async()=>{
+    const card=button.closest("[data-followup-id]");
+    const id=card.dataset.followupId;
+    const statusValue=card.querySelector("[data-followup-status]").value;
+    button.disabled=true;
+    try{
+     await request("/records/tasks/"+encodeURIComponent(id),{
+      method:"PATCH",body:JSON.stringify({status:statusValue})
+     });
+     setStatus("Follow-up status updated.");
+     await renderFollowups();
+    }catch(e){
+     button.disabled=false;
+     setStatus("Could not update follow-up: "+(e.message||e));
+    }
+   };
+  });
+ }catch(e){
+  list.textContent="Saved follow-ups could not be loaded: "+(e.message||e);
+ }
+};
+host.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{state.tab=b.dataset.tab;render();}));
+host.querySelector("#aiemRefresh").addEventListener("click",()=>loadFolder(state.folder));
+host.querySelector("#aiemCompose").addEventListener("click",()=>startComposer("new",null));
+window.loadAIEmailManager=()=>loadInbox();
+render();
+loadInbox();
+})();
+</script>
+
+</body>
+</html>

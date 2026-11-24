@@ -1,0 +1,62 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: office-suite-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: office_suite
+      POSTGRES_USER: office_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
+    volumes:
+      - office_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U office_user -d office_suite"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - office-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: office-suite-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://office_user:${POSTGRES_PASSWORD:-change-this-password}@db:5432/office_suite
+      SECRET_KEY: ${SECRET_KEY:-replace-this-with-a-long-random-secret}
+      UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "8000:8000"
+    volumes:
+      - office_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - office-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: office-suite-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:8000/api
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - office-network
+
+volumes:
+  office_db_data:
+  office_uploads:
+
+networks:
+  office-network:
+    driver: bridge

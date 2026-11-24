@@ -1,0 +1,370 @@
+import shutil
+from datetime import date
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import func, text
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
+from app.config import settings
+from app.database import get_db
+from app.models.financial_record import FinancialRecord, FinancialRecordPayment
+from app.models.invoice import Invoice
+from app.models.office_record import OfficeRecord
+from app.models.user import User
+
+router = APIRouter()
+KINDS = {"customers", "tasks", "leads", "documents", "emails"}
+ALLOWED_STATUS = {
+    "customers": {"active", "inactive", "prospect"},
+    "tasks": {"open", "in_progress", "blocked", "completed", "cancelled"},
+    "leads": {"new", "contacted", "qualified", "proposal", "won", "lost"},
+    "documents": {"draft", "final", "archived"},
+    "emails": {"draft", "queued", "sent", "received", "archived"},
+}
+
+
+class RecordCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    status: str = Field(default="active", min_length=1, max_length=40)
+    data: dict = Field(default_factory=dict)
+    notes: str | None = Field(default=None, max_length=20000)
+
+
+class RecordUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    status: str | None = Field(default=None, min_length=1, max_length=40)
+    data: dict | None = None
+    notes: str | None = Field(default=None, max_length=20000)
+
+
+def record_dict(item: OfficeRecord) -> dict:
+    return {
+        "id": item.id,
+        "kind": item.kind,
+        "title": item.title,
+        "status": item.status,
+        "data": item.data or {},
+        "notes": item.notes,
+        "owner_id": item.owner_id,
+        "created_at": item.created_at,
+        "updated_at": item.updated_at,
+    }
+
+
+def check_kind(kind: str):
+    if kind not in KINDS:
+        raise HTTPException(status_code=404, detail="Office module not found.")
+
+
+def visible_records(db: Session, kind: str, user: User):
+    query = db.query(OfficeRecord).filter(OfficeRecord.kind == kind)
+    if not user.is_superuser:
+        query = query.filter(OfficeRecord.owner_id == user.id)
+    return query
+
+
+@router.get("/records/{kind}")
+def list_records(
+    kind: str,
+    q: str | None = Query(default=None, max_length=200),
+    record_status: str | None = Query(default=None, alias="status", max_length=40),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    check_kind(kind)
+    query = visible_records(db, kind, user)
+    if q:
+        query = query.filter(OfficeRecord.title.ilike(f"%{q.strip()}%"))
+    if record_status:
+        query = query.filter(OfficeRecord.status == record_status)
+    total = query.count()
+    items = query.order_by(OfficeRecord.updated_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    return {"items": [record_dict(x) for x in items], "total": total, "page": page, "page_size": page_size}
+
+
+@router.post("/records/{kind}", status_code=status.HTTP_201_CREATED)
+def create_record(
+    kind: str,
+    payload: RecordCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    check_kind(kind)
+    if payload.status not in ALLOWED_STATUS[kind]:
+        raise HTTPException(status_code=422, detail="Unsupported status for this module.")
+    item = OfficeRecord(
+        kind=kind,
+        title=payload.title.strip(),
+        status=payload.status,
+        data=payload.data,
+        notes=payload.notes,
+        owner_id=user.id,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return record_dict(item)
+
+
+@router.get("/records/{kind}/{record_id}")
+def get_record(
+    kind: str,
+    record_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    check_kind(kind)
+    item = visible_records(db, kind, user).filter(OfficeRecord.id == record_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    return record_dict(item)
+
+
+@router.patch("/records/{kind}/{record_id}")
+def update_record(
+    kind: str,
+    record_id: int,
+    payload: RecordUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    check_kind(kind)
+    item = visible_records(db, kind, user).filter(OfficeRecord.id == record_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    changes = payload.model_dump(exclude_unset=True)
+    if "status" in changes and changes["status"] not in ALLOWED_STATUS[kind]:
+        raise HTTPException(status_code=422, detail="Unsupported status for this module.")
+    if "title" in changes and changes["title"] is not None:
+        changes["title"] = changes["title"].strip()
+    for key, value in changes.items():
+        setattr(item, key, value)
+    db.commit()
+    db.refresh(item)
+    return record_dict(item)
+
+
+@router.delete("/records/{kind}/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_record(
+    kind: str,
+    record_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    check_kind(kind)
+    item = visible_records(db, kind, user).filter(OfficeRecord.id == record_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    db.delete(item)
+    db.commit()
+
+
+@router.get("/reports/summary")
+def reports_summary(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    invoice_query = db.query(Invoice)
+    if not user.is_superuser:
+        invoice_query = invoice_query.filter(Invoice.uploaded_by == user.id)
+
+    invoice_count = invoice_query.count()
+
+    try:
+        pending_review = invoice_query.filter(
+            Invoice.status.in_(["pending_review", "needs_review"])
+        ).count()
+    except Exception:
+        pending_review = 0
+
+    amount_rows = invoice_query.with_entities(
+        Invoice.currency,
+        func.sum(Invoice.total_amount),
+    ).group_by(Invoice.currency).all()
+
+    paid_rows = invoice_query.with_entities(
+        Invoice.currency,
+        func.sum(Invoice.paid_by),
+    ).group_by(Invoice.currency).all()
+
+    record_query = db.query(FinancialRecord)
+    if not user.is_superuser:
+        record_query = record_query.filter(FinancialRecord.owner_id == user.id)
+    if start_date:
+        record_query = record_query.filter(FinancialRecord.record_date >= start_date)
+    if end_date:
+        record_query = record_query.filter(FinancialRecord.record_date <= end_date)
+
+    income_rows = record_query.filter(
+        FinancialRecord.record_type == "income"
+    ).with_entities(
+        FinancialRecord.currency,
+        func.sum(FinancialRecord.amount),
+    ).group_by(FinancialRecord.currency).all()
+
+    expense_rows = record_query.filter(
+        FinancialRecord.record_type == "expense"
+    ).with_entities(
+        FinancialRecord.currency,
+        func.sum(FinancialRecord.amount),
+    ).group_by(FinancialRecord.currency).all()
+
+    category_rows = record_query.with_entities(
+        FinancialRecord.record_type,
+        FinancialRecord.currency,
+        FinancialRecord.category,
+        func.sum(FinancialRecord.amount),
+        func.count(FinancialRecord.id),
+    ).group_by(
+        FinancialRecord.record_type,
+        FinancialRecord.currency,
+        FinancialRecord.category,
+    ).order_by(
+        FinancialRecord.record_type,
+        FinancialRecord.currency,
+        FinancialRecord.category,
+    ).all()
+
+    payment_query = db.query(FinancialRecordPayment).join(
+        FinancialRecord,
+        FinancialRecordPayment.record_id == FinancialRecord.id,
+    )
+    if not user.is_superuser:
+        payment_query = payment_query.filter(FinancialRecord.owner_id == user.id)
+    if start_date:
+        payment_query = payment_query.filter(FinancialRecordPayment.payment_date >= start_date)
+    if end_date:
+        payment_query = payment_query.filter(FinancialRecordPayment.payment_date <= end_date)
+
+    payment_rows = payment_query.with_entities(
+        FinancialRecord.currency,
+        func.sum(FinancialRecordPayment.amount),
+    ).group_by(FinancialRecord.currency).all()
+
+    financial_income = {c: str(v or 0) for c, v in income_rows}
+    financial_expense = {c: str(v or 0) for c, v in expense_rows}
+    financial_currencies = sorted(set(financial_income) | set(financial_expense))
+    financial_net = {
+        currency: str(
+            __import__("decimal").Decimal(financial_income.get(currency, "0"))
+            - __import__("decimal").Decimal(financial_expense.get(currency, "0"))
+        )
+        for currency in financial_currencies
+    }
+
+    return {
+        "generated_on": date.today().isoformat(),
+        "period": {
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None,
+        },
+        "invoices": {
+            "count": invoice_count,
+            "pending_review": pending_review,
+            "amounts_by_currency": {c: str(v or 0) for c, v in amount_rows},
+            "paid_amounts_by_currency": {c: str(v or 0) for c, v in paid_rows},
+        },
+        "financial": {
+            "income_by_currency": financial_income,
+            "expense_by_currency": financial_expense,
+            "net_by_currency": financial_net,
+            "payments_by_currency": {c: str(v or 0) for c, v in payment_rows},
+            "by_category": [
+                {
+                    "record_type": record_type,
+                    "currency": currency,
+                    "category": category,
+                    "amount": str(amount or 0),
+                    "records": int(records or 0),
+                }
+                for record_type, currency, category, amount, records in category_rows
+            ],
+        },
+        "records": {
+            "financial_records": record_query.count(),
+        },
+    }
+
+
+@router.get("/monitoring/status")
+def monitoring_status(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    checks = {}
+    try:
+        db.execute(text("SELECT 1"))
+        checks["database"] = {"status": "healthy"}
+    except Exception:
+        checks["database"] = {"status": "error"}
+
+    upload_path = Path(settings.upload_dir)
+    try:
+        upload_path.mkdir(parents=True, exist_ok=True)
+        usage = shutil.disk_usage(upload_path)
+        checks["file_storage"] = {
+            "status": "healthy" if upload_path.is_dir() and upload_path.stat().st_mode else "warning",
+            "path": str(upload_path),
+            "free_bytes": usage.free,
+            "total_bytes": usage.total,
+        }
+    except OSError:
+        checks["file_storage"] = {"status": "error"}
+
+    checks["email_integration"] = {
+        "status": "not_configured",
+        "detail": "Connect an email provider before inbox synchronization or sending.",
+    }
+    checks["ai_integration"] = {
+        "status": "not_configured",
+        "detail": "Configure an AI provider to enable AI-assisted processing.",
+    }
+    checks["automation"] = {
+        "status": "not_configured",
+        "detail": "Configure an automation service to enable workflow execution.",
+    }
+
+    overall = "healthy" if all(
+        item["status"] == "healthy" for key, item in checks.items()
+        if key in {"database", "file_storage"}
+    ) else "degraded"
+
+    return {"status": overall, "checks": checks}
+
+
+@router.get("/reports/cash-flow")
+def cash_flow_report(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    currency: str | None = None,
+    account_id: int | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.services.financial_reports import cash_flow_report as build_cash_flow_report
+
+    period_start = start_date or date(date.today().year, 1, 1)
+    period_end = end_date or date.today()
+
+    if period_start > period_end:
+        raise HTTPException(
+            status_code=400,
+            detail="start_date must be before or equal to end_date",
+        )
+
+    return build_cash_flow_report(
+        db=db,
+        owner_id=user.id,
+        is_superuser=user.is_superuser,
+        start_date=period_start,
+        end_date=period_end,
+        currency=currency,
+        account_id=account_id,
+    )

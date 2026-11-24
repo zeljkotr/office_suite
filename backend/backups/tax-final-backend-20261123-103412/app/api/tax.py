@@ -1,0 +1,605 @@
+from datetime import date
+from decimal import Decimal, InvalidOperation
+import re
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
+from app.database import get_db
+from app.models.user import User
+from app.models.tax import (
+    TaxJurisdiction, TaxCategory, TaxRate, TaxRule, TaxRegistration,
+    TaxTransaction, TaxAuditEvent, TaxIntegration,
+)
+from app.services.tax_engine import calculate_tax, rate_is_valid
+
+router = APIRouter(prefix="/tax", tags=["Tax & Compliance"])
+
+
+def owned(query, model, user):
+    return query.filter(model.owner_id == user.id)
+
+
+def audit(db, user, entity, entity_id, action, details=None):
+    db.add(TaxAuditEvent(
+        owner_id=user.id, entity_type=entity, entity_id=entity_id,
+        action=action, details=details or {},
+    ))
+
+
+def payload_dict(value):
+    if not isinstance(value, dict):
+        raise HTTPException(422, "A JSON object is required.")
+    return value
+
+
+def require_text(data, key, limit=160):
+    value = str(data.get(key) or "").strip()
+    if not value or len(value) > limit:
+        raise HTTPException(422, f"{key} is required and must be at most {limit} characters.")
+    return value
+
+
+def serialize(obj):
+    result = {}
+    for column in obj.__table__.columns:
+        value = getattr(obj, column.name)
+        result[column.name] = value.isoformat() if hasattr(value, "isoformat") else str(value) if isinstance(value, Decimal) else value
+    return result
+
+
+def parse_date(value, field, default=None):
+    if value in (None, ""):
+        return default
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        raise HTTPException(422, f"{field} must be an ISO date (YYYY-MM-DD).") from None
+
+
+def validate_currency(value):
+    currency = str(value or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{3}", currency):
+        raise HTTPException(422, "Currency must be a valid three-letter code.")
+    return currency
+
+
+def validate_metadata(value, field):
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise HTTPException(422, f"{field} must be a JSON object.")
+    return value
+
+
+def validate_integration_configuration(value):
+    configuration = validate_metadata(value, "configuration")
+    forbidden = ("secret", "password", "token", "api_key", "private_key", "credential")
+
+    def inspect(item):
+        if isinstance(item, dict):
+            for key, child in item.items():
+                normalized = str(key).lower().replace("-", "_")
+                if any(word in normalized for word in forbidden):
+                    raise HTTPException(
+                        422,
+                        "Integration secrets must not be stored in configuration. Use an external secret reference."
+                    )
+                inspect(child)
+        elif isinstance(item, list):
+            for child in item:
+                inspect(child)
+
+    inspect(configuration)
+    return configuration
+
+
+def validate_source_owner(db, user, source_type, source_id):
+    source_type = str(source_type or "manual").strip().lower()
+
+    if source_type == "manual":
+        if source_id is not None:
+            raise HTTPException(422, "Manual tax transactions cannot reference a source record.")
+        return source_type
+
+    if source_type not in {"invoice", "financial_record", "bank_transaction"}:
+        raise HTTPException(422, "Unsupported tax transaction source type.")
+
+    if source_id is None:
+        raise HTTPException(422, "A source record ID is required.")
+
+    registry = getattr(TaxTransaction, "registry", None)
+    class_registry = getattr(registry, "_class_registry", {}) if registry else {}
+    model = class_registry.get({
+        "invoice": "Invoice",
+        "financial_record": "FinancialRecord",
+        "bank_transaction": "BankTransaction",
+    }[source_type])
+
+    if model is None or not isinstance(model, type):
+        raise HTTPException(500, "The configured financial source model is unavailable.")
+
+    owner_field = "uploaded_by" if source_type == "invoice" else "owner_id"
+    if not hasattr(model, owner_field):
+        raise HTTPException(500, "The financial source ownership field is unavailable.")
+
+    record = db.query(model).filter(
+        model.id == source_id,
+        getattr(model, owner_field) == user.id,
+    ).first()
+
+    if record is None:
+        raise HTTPException(404, "Financial source record not found.")
+
+    return source_type
+
+
+@router.get("/jurisdictions")
+def list_jurisdictions(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [serialize(x) for x in owned(db.query(TaxJurisdiction), TaxJurisdiction, user).order_by(TaxJurisdiction.name)]
+
+
+@router.post("/jurisdictions")
+def create_jurisdiction(data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    data = payload_dict(data)
+    item = TaxJurisdiction(
+        owner_id=user.id, name=require_text(data, "name"),
+        code=require_text(data, "code", 80),
+        country_code=(data.get("country_code") or None),
+        region=(data.get("region") or None), currency=(data.get("currency") or None),
+        tax_year_start_month=data.get("tax_year_start_month"),
+        settings=data.get("settings") or {},
+    )
+    if item.tax_year_start_month is not None and not 1 <= int(item.tax_year_start_month) <= 12:
+        raise HTTPException(422, "tax_year_start_month must be between 1 and 12.")
+    db.add(item)
+    db.flush()
+    audit(db, user, "jurisdiction", item.id, "created", {"code": item.code})
+    db.commit()
+    db.refresh(item)
+    return serialize(item)
+
+
+@router.patch("/jurisdictions/{item_id}")
+def update_jurisdiction(item_id: int, data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    item = owned(db.query(TaxJurisdiction), TaxJurisdiction, user).filter_by(id=item_id).first()
+    if not item:
+        raise HTTPException(404, "Tax jurisdiction not found.")
+    allowed = {"name", "code", "country_code", "region", "currency", "tax_year_start_month", "settings", "is_active"}
+    for key, value in payload_dict(data).items():
+        if key in allowed:
+            setattr(item, key, value)
+    audit(db, user, "jurisdiction", item.id, "updated", data)
+    db.commit()
+    db.refresh(item)
+    return serialize(item)
+
+
+@router.get("/categories")
+def list_categories(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [serialize(x) for x in owned(db.query(TaxCategory), TaxCategory, user).order_by(TaxCategory.name)]
+
+
+@router.post("/categories")
+def create_category(data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    data = payload_dict(data)
+    item = TaxCategory(owner_id=user.id, code=require_text(data, "code", 80), name=require_text(data, "name"), description=data.get("description"), metadata_json=data.get("metadata_json") or {})
+    db.add(item)
+    db.flush()
+    audit(db, user, "category", item.id, "created", {"code": item.code})
+    db.commit()
+    db.refresh(item)
+    return serialize(item)
+
+
+@router.get("/rates")
+def list_rates(jurisdiction_id: int | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    query = owned(db.query(TaxRate), TaxRate, user)
+    if jurisdiction_id:
+        query = query.filter(TaxRate.jurisdiction_id == jurisdiction_id)
+    return [serialize(x) for x in query.order_by(TaxRate.name)]
+
+
+@router.post("/rates")
+def create_rate(data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    data = payload_dict(data)
+    jurisdiction = owned(db.query(TaxJurisdiction), TaxJurisdiction, user).filter_by(id=data.get("jurisdiction_id")).first()
+    if not jurisdiction:
+        raise HTTPException(404, "Tax jurisdiction not found.")
+    try:
+        percentage = Decimal(str(data.get("rate")))
+        if not percentage.is_finite() or percentage < 0:
+            raise ValueError()
+    except (InvalidOperation, TypeError, ValueError):
+        raise HTTPException(422, "A non-negative numeric tax rate is required.")
+    category_id = data.get("category_id")
+    if category_id is not None:
+        category = owned(db.query(TaxCategory), TaxCategory, user).filter_by(id=category_id).first()
+        if not category:
+            raise HTTPException(404, "Tax category not found.")
+
+    valid_from = parse_date(data.get("valid_from"), "valid_from")
+    valid_to = parse_date(data.get("valid_to"), "valid_to")
+    if valid_from and valid_to and valid_to < valid_from:
+        raise HTTPException(422, "valid_to cannot be earlier than valid_from.")
+
+    item = TaxRate(
+        owner_id=user.id, jurisdiction_id=jurisdiction.id,
+        category_id=category_id, code=require_text(data, "code", 80),
+        name=require_text(data, "name"), tax_type=require_text(data, "tax_type", 40),
+        rate=percentage, valid_from=valid_from, valid_to=valid_to,
+        is_compound=bool(data.get("is_compound", False)),
+        metadata_json=data.get("metadata_json") or {},
+    )
+    db.add(item)
+    db.flush()
+    audit(db, user, "rate", item.id, "created", {"rate": str(percentage), "version": item.version})
+    db.commit()
+    db.refresh(item)
+    return serialize(item)
+
+
+@router.post("/rates/{rate_id}/new-version")
+def new_rate_version(rate_id: int, data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    old = owned(db.query(TaxRate), TaxRate, user).filter_by(id=rate_id).first()
+    if not old:
+        raise HTTPException(404, "Tax rate not found.")
+    data = payload_dict(data)
+    try:
+        percentage = Decimal(str(data["rate"]))
+        if not percentage.is_finite() or percentage < 0:
+            raise ValueError()
+    except (KeyError, InvalidOperation, TypeError, ValueError):
+        raise HTTPException(422, "A non-negative numeric tax rate is required.")
+    valid_from = parse_date(data.get("valid_from"), "valid_from")
+    valid_to = parse_date(data.get("valid_to"), "valid_to")
+    if valid_from and valid_to and valid_to < valid_from:
+        raise HTTPException(422, "valid_to cannot be earlier than valid_from.")
+
+    old.is_active = False
+    new = TaxRate(
+        owner_id=user.id, jurisdiction_id=old.jurisdiction_id, category_id=old.category_id,
+        code=old.code, name=old.name, tax_type=old.tax_type, rate=percentage,
+        valid_from=valid_from, valid_to=valid_to,
+        is_compound=old.is_compound, version=old.version + 1,
+        metadata_json=old.metadata_json or {},
+    )
+    db.add(new)
+    db.flush()
+    audit(db, user, "rate", new.id, "new_version", {"previous_rate_id": old.id, "version": new.version})
+    db.commit()
+    db.refresh(new)
+    return serialize(new)
+
+
+@router.get("/rules")
+def list_rules(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [serialize(x) for x in owned(db.query(TaxRule), TaxRule, user).order_by(TaxRule.priority)]
+
+
+@router.post("/rules")
+def create_rule(data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    data = payload_dict(data)
+    jurisdiction = owned(db.query(TaxJurisdiction), TaxJurisdiction, user).filter_by(id=data.get("jurisdiction_id")).first()
+    if not jurisdiction:
+        raise HTTPException(404, "Tax jurisdiction not found.")
+    rate = None
+    if data.get("rate_id") is not None:
+        rate = owned(db.query(TaxRate), TaxRate, user).filter_by(id=data["rate_id"], jurisdiction_id=jurisdiction.id).first()
+        if not rate:
+            raise HTTPException(404, "Tax rate not found in this jurisdiction.")
+    treatment = data.get("treatment", "standard")
+    price_mode = data.get("price_mode", "exclusive")
+    if treatment not in {"standard", "exempt", "zero_rated", "out_of_scope", "reverse_charge"}:
+        raise HTTPException(422, "Unsupported tax treatment.")
+    if price_mode not in {"exclusive", "inclusive"}:
+        raise HTTPException(422, "Unsupported price mode.")
+    item = TaxRule(owner_id=user.id, jurisdiction_id=jurisdiction.id, rate_id=rate.id if rate else None, name=require_text(data, "name"), priority=int(data.get("priority", 100)), conditions=data.get("conditions") or {}, treatment=treatment, price_mode=price_mode)
+    db.add(item)
+    db.flush()
+    audit(db, user, "rule", item.id, "created", data)
+    db.commit()
+    db.refresh(item)
+    return serialize(item)
+
+
+@router.get("/registrations")
+def list_registrations(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [serialize(x) for x in owned(db.query(TaxRegistration), TaxRegistration, user)]
+
+
+@router.post("/registrations")
+def create_registration(data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    data = payload_dict(data)
+    jurisdiction = owned(db.query(TaxJurisdiction), TaxJurisdiction, user).filter_by(id=data.get("jurisdiction_id")).first()
+    if not jurisdiction:
+        raise HTTPException(404, "Tax jurisdiction not found.")
+    item = TaxRegistration(owner_id=user.id, jurisdiction_id=jurisdiction.id, identifier_type=require_text(data, "identifier_type", 80), identifier_value=require_text(data, "identifier_value", 180), valid_from=data.get("valid_from"), valid_to=data.get("valid_to"), metadata_json=data.get("metadata_json") or {})
+    db.add(item)
+    db.flush()
+    audit(db, user, "registration", item.id, "created")
+    db.commit()
+    db.refresh(item)
+    return serialize(item)
+
+
+@router.post("/calculate")
+def calculate(data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    data = payload_dict(data)
+    jurisdiction = owned(db.query(TaxJurisdiction), TaxJurisdiction, user).filter_by(id=data.get("jurisdiction_id"), is_active=True).first()
+    if not jurisdiction:
+        raise HTTPException(404, "Active tax jurisdiction not found.")
+    on_date = parse_date(data.get("tax_date"), "tax_date", date.today())
+    rate = None
+    rule = None
+    if data.get("rule_id") is not None:
+        rule = owned(db.query(TaxRule), TaxRule, user).filter_by(id=data["rule_id"], jurisdiction_id=jurisdiction.id, is_active=True).first()
+        if not rule:
+            raise HTTPException(404, "Tax rule not found.")
+        if rule.rate_id:
+            rate = owned(db.query(TaxRate), TaxRate, user).filter_by(
+                id=rule.rate_id, jurisdiction_id=jurisdiction.id
+            ).first()
+            if rate is None:
+                raise HTTPException(422, "The tax rule references an unavailable tax rate.")
+    elif data.get("rate_id") is not None:
+        rate = owned(db.query(TaxRate), TaxRate, user).filter_by(id=data["rate_id"], jurisdiction_id=jurisdiction.id).first()
+    else:
+        raise HTTPException(422, "Select a tax rate or tax rule.")
+    if rate and not rate_is_valid(rate, on_date):
+        raise HTTPException(422, "The selected tax rate is not valid for this date.")
+    try:
+        amount = Decimal(str(data["amount"]))
+        if not amount.is_finite() or amount < 0:
+            raise ValueError()
+    except (KeyError, InvalidOperation, TypeError, ValueError):
+        raise HTTPException(422, "A non-negative amount is required.")
+    treatment = rule.treatment if rule else data.get("treatment", "standard")
+    price_mode = rule.price_mode if rule else data.get("price_mode", "exclusive")
+
+    if treatment == "standard" and rate is None:
+        raise HTTPException(422, "A standard tax calculation requires a tax rate.")
+
+    source_type = validate_source_owner(
+        db, user, data.get("source_type", "manual"), data.get("source_id")
+    )
+    rate_value = rate.rate if rate and treatment == "standard" else Decimal("0")
+    result = calculate_tax(amount, rate_value, price_mode, treatment)
+    if data.get("save", True):
+        category_snapshot = None
+        if rate and rate.category_id:
+            category = owned(
+                db.query(TaxCategory), TaxCategory, user
+            ).filter_by(id=rate.category_id).first()
+            if category is None:
+                raise HTTPException(422, "The selected tax rate references an unavailable category.")
+            category_snapshot = {
+                "id": category.id,
+                "code": category.code,
+                "name": category.name,
+            }
+
+        tx = TaxTransaction(
+            owner_id=user.id, jurisdiction_id=jurisdiction.id,
+            rate_id=rate.id if rate else None, source_type=source_type,
+            source_id=data.get("source_id"), tax_date=on_date,
+            currency=validate_currency(data.get("currency")),
+            taxable_amount=result["taxable_amount"], tax_amount=result["tax_amount"],
+            total_amount=result["total_amount"], rate_snapshot=rate_value,
+            treatment=treatment,
+            details={
+                "price_mode": price_mode,
+                "rate_version": rate.version if rate else None,
+                "rule_id": rule.id if rule else None,
+                "category_snapshot": category_snapshot,
+            },
+        )
+        db.add(tx)
+        db.flush()
+        audit(db, user, "transaction", tx.id, "calculated", tx.details)
+        result["transaction_id"] = tx.id
+        db.commit()
+    return {key: str(value) if isinstance(value, Decimal) else value for key, value in result.items()}
+
+
+@router.get("/transactions")
+def list_transactions(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    jurisdiction_id: int | None = None,
+    category_id: int | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    query = owned(db.query(TaxTransaction), TaxTransaction, user)
+    if start_date:
+        query = query.filter(TaxTransaction.tax_date >= start_date)
+    if end_date:
+        query = query.filter(TaxTransaction.tax_date <= end_date)
+    if jurisdiction_id:
+        query = query.filter(TaxTransaction.jurisdiction_id == jurisdiction_id)
+    if category_id:
+        query = query.join(
+            TaxRate,
+            (TaxRate.id == TaxTransaction.rate_id)
+            & (TaxRate.owner_id == user.id),
+        ).filter(TaxRate.category_id == category_id)
+    return [
+        serialize(x)
+        for x in query.order_by(
+            TaxTransaction.tax_date.desc(), TaxTransaction.id.desc()
+        ).limit(500)
+    ]
+
+
+@router.get("/report")
+def report(
+    start_date: date,
+    end_date: date,
+    jurisdiction_id: int | None = None,
+    category_id: int | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if end_date < start_date:
+        raise HTTPException(422, "End date cannot be earlier than start date.")
+
+    query = owned(
+        db.query(
+            TaxTransaction.jurisdiction_id.label("jurisdiction_id"),
+            TaxJurisdiction.name.label("jurisdiction_name"),
+            TaxRate.category_id.label("category_id"),
+            TaxCategory.code.label("category_code"),
+            TaxCategory.name.label("category_name"),
+            TaxTransaction.currency.label("currency"),
+            TaxTransaction.treatment.label("treatment"),
+            func.count(TaxTransaction.id).label("transaction_count"),
+            func.sum(TaxTransaction.taxable_amount).label("taxable_total"),
+            func.sum(TaxTransaction.tax_amount).label("tax_total"),
+            func.sum(TaxTransaction.total_amount).label("gross_total"),
+        ),
+        TaxTransaction,
+        user,
+    ).join(
+        TaxJurisdiction,
+        (TaxJurisdiction.id == TaxTransaction.jurisdiction_id)
+        & (TaxJurisdiction.owner_id == user.id),
+    ).outerjoin(
+        TaxRate,
+        (TaxRate.id == TaxTransaction.rate_id)
+        & (TaxRate.owner_id == user.id),
+    ).outerjoin(
+        TaxCategory,
+        (TaxCategory.id == TaxRate.category_id)
+        & (TaxCategory.owner_id == user.id),
+    )
+
+    query = query.filter(
+        TaxTransaction.tax_date >= start_date,
+        TaxTransaction.tax_date <= end_date,
+    )
+
+    if jurisdiction_id is not None:
+        query = query.filter(TaxTransaction.jurisdiction_id == jurisdiction_id)
+    if category_id is not None:
+        query = query.filter(TaxRate.category_id == category_id)
+
+    rows = query.group_by(
+        TaxTransaction.jurisdiction_id,
+        TaxJurisdiction.name,
+        TaxRate.category_id,
+        TaxCategory.code,
+        TaxCategory.name,
+        TaxTransaction.currency,
+        TaxTransaction.treatment,
+    ).order_by(
+        TaxJurisdiction.name,
+        TaxCategory.name,
+        TaxTransaction.currency,
+        TaxTransaction.treatment,
+    ).all()
+
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "filters": {
+            "jurisdiction_id": jurisdiction_id,
+            "category_id": category_id,
+        },
+        "rows": [{
+            "jurisdiction_id": row.jurisdiction_id,
+            "jurisdiction": row.jurisdiction_name,
+            "category_id": row.category_id,
+            "category_code": row.category_code,
+            "category": row.category_name,
+            "currency": row.currency,
+            "treatment": row.treatment,
+            "transaction_count": row.transaction_count,
+            "taxable_total": str(row.taxable_total or 0),
+            "tax_total": str(row.tax_total or 0),
+            "gross_total": str(row.gross_total or 0),
+        } for row in rows],
+    }
+@router.get("/audit")
+def list_audit(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [serialize(x) for x in owned(db.query(TaxAuditEvent), TaxAuditEvent, user).order_by(TaxAuditEvent.created_at.desc()).limit(300)]
+
+
+@router.get("/integrations")
+def list_integrations(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    items = owned(db.query(TaxIntegration), TaxIntegration, user).all()
+    result = []
+    for item in items:
+        row = serialize(item)
+        row["configuration"] = {
+            key: value for key, value in (item.configuration or {}).items()
+            if not any(word in str(key).lower().replace("-", "_") for word in (
+                "secret", "password", "token", "api_key", "private_key", "credential"
+            ))
+        }
+        result.append(row)
+    return result
+
+
+@router.post("/integrations")
+def create_integration(data: dict, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    data = payload_dict(data)
+    jurisdiction_id = data.get("jurisdiction_id")
+    if jurisdiction_id and not owned(db.query(TaxJurisdiction), TaxJurisdiction, user).filter_by(id=jurisdiction_id).first():
+        raise HTTPException(404, "Tax jurisdiction not found.")
+    configuration = validate_integration_configuration(data.get("configuration"))
+    item = TaxIntegration(
+        owner_id=user.id, jurisdiction_id=jurisdiction_id,
+        provider=require_text(data, "provider", 120),
+        integration_type=require_text(data, "integration_type", 60),
+        endpoint=data.get("endpoint"), configuration=configuration,
+        status="not_configured", is_active=False
+    )
+    db.add(item)
+    db.flush()
+    audit(db, user, "integration", item.id, "created", {"provider": item.provider})
+    db.commit()
+    db.refresh(item)
+    return serialize(item)
+
+@router.get("/transactions/export.csv")
+def export_tax_transactions_csv(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Export the authenticated user's tax transactions as CSV."""
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    from sqlalchemy.inspection import inspect as sqlalchemy_inspect
+
+    query = owned(db.query(TaxTransaction), TaxTransaction, current_user)
+    rows = query.order_by(TaxTransaction.id.desc()).limit(10000).all()
+
+    mapper = sqlalchemy_inspect(TaxTransaction)
+    columns = [column.key for column in mapper.columns]
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(columns)
+
+    for row in rows:
+        values = []
+        for column in columns:
+            value = getattr(row, column, None)
+            if isinstance(value, (dict, list)):
+                import json
+                value = json.dumps(value, ensure_ascii=False, default=str)
+            values.append(value.isoformat() if hasattr(value, "isoformat") else value)
+        writer.writerow(values)
+
+    payload = output.getvalue()
+    output.close()
+    return StreamingResponse(
+        iter([payload]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="tax-transactions.csv"'},
+    )
